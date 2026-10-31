@@ -37,7 +37,7 @@ Each person needs their own account. A teammate who signs in without an invitati
 ## Using the workspace
 
 - **Overview:** See the project's objective, latest context revision, and coordination state.
-- **Work queue:** Read task scope, priority, owner, dependencies, and acceptance/test checks. Claim or update work from the task controls. Avoid duplicate work by checking the shared owner/status first.
+- **Work queue:** Owners/leads create a small task with **Create task**: title, objective, optional owner, priority, file paths (one per line), acceptance criteria, and expected checks. Save it to the shared queue. Teammates review the shared owner/status before claiming or updating work to avoid duplicate effort.
 - **Decisions:** Owners/leads can propose and accept decisions. Accepted decisions advance the shared context revision so agents can see that their snapshots may be stale.
 - **Agent context:** Select a task and copy/download a Markdown context pack for your local coding agent. Refresh it after decisions or task changes.
 - **Release readiness:** Update shared release-check status and review evidence before the final handoff.
