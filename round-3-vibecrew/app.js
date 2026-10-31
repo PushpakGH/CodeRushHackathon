@@ -84,6 +84,16 @@
   };
   const friendlyError = error => {
     const message = String(error?.message || '').replace(/\s+/g, ' ').trim();
+    const details = `${error?.code || ''} ${error?.name || ''} ${message}`.toLowerCase();
+    if (details.includes('over_email_send_rate_limit') || details.includes('email rate limit exceeded')) {
+      return 'Supabase has reached its built-in email limit (2 emails per hour for the whole project). Stop retrying and wait for the quota to recover. To let all teammates sign in, the project owner needs to configure a custom SMTP provider in Supabase Authentication settings, then set a suitable email limit.';
+    }
+    if (details.includes('email_address_not_authorized')) {
+      return 'Supabase’s built-in email sender only delivers to authorized organization members. The project owner needs to configure custom SMTP before teammates can receive sign-in links.';
+    }
+    if (details.includes('over_request_rate_limit')) {
+      return 'Supabase temporarily rate-limited sign-in requests from this network. Pause for a few minutes, then request one link. If it continues, ask the project owner to inspect Auth logs; do not keep retrying.';
+    }
     return message ? message.slice(0, 220) : 'The request could not be completed. Check your connection and try again.';
   };
 
