@@ -65,3 +65,37 @@ The dialog's Cancel button shared the close-icon styling class, which forced ico
 ## Architecture decision
 
 **ADR:** Keep Round 1 as an isolated static child project with localStorage. This satisfies refresh persistence without spending the short feature round on accounts, server deployment, database setup, or cross-round coupling. If a later round requires collaboration across devices, add a backend to that round's separate project rather than silently changing this feature's data boundary.
+
+## Round 2 — R2-01 Event Auction System
+
+### Discovery and scope
+
+- **User/problem:** event participants need a clear way to bid on one item, see the current leader, and audit the bid sequence; the organizer needs an unambiguous close and winner state.
+- **Primary journey:** open the live lot → enter a display name and amount above the current bid → see the bid become the leader in history → let the deadline expire → see the winning bidder, or an unsold result if there were no bids.
+- **Demo moment:** place a valid bid, attempt an equal/lower bid to show validation, then let the timer expire and show the winner. For a quick demo restart, use the explicit reset control (confirmation required).
+- **P0:** one visible item and starting price, live five-minute deadline, display name and bid entry, reject malformed/equal/lower bids, current highest bid and history, no bids accepted after deadline, winner or unsold state, persistence over refresh, dark mode.
+- **P1:** same-browser cross-tab updates, clear validation/closed/storage-error states, resettable demo setup, responsive and keyboard-accessible controls.
+- **P2 / out of scope:** accounts, real multi-device sync, server-authoritative bids, payments, multiple lots, reserve prices, bid increments, anti-fraud, and production auction/legal workflows.
+- **Assumptions:** INR, a ₹1,200 starting price, and a five-minute timer are synthetic demo defaults because event specifics were not provided. A single-browser static implementation fits a 45-minute feature round. A shared server is needed for separate devices.
+
+### Design, architecture, and edge cases
+
+- Single page `/`, one participant interaction model, no authentication or protected resources. Display names are self-entered and not verified identities.
+- Isolated static HTML/CSS/JS project in `round-2-event-auction/`. Integer paise internally avoid floating-point bid comparisons; browser formatting displays INR. Local storage records start/end timestamps and bid entries; time is derived from an absolute deadline so refresh cannot extend the auction.
+- Bids are validated against the current leader and deadline at submission. Loaded state is shape-checked. `textContent` renders bidder names safely. A local-storage failure leaves the in-memory demo usable and explains that changes will not survive refresh. Storage events update other tabs; they cannot make separate devices authoritative or prevent simultaneous-write races.
+- Edge cases: whitespace-only/overlong names; malformed, negative, too-small, equal, unsafe-range, or over-precision amounts; deadline crossing between render and submit; no-bid close; malformed saved state; unavailable storage; history cap; live versus closed winner labels; theme-storage failure; reset confirmation; narrow viewport and reduced motion.
+- Visual direction: editorial auction catalog with a sage illustrated prize card, neutral ink/paper surfaces, lime bid action, mono labels/timer, desktop split layout, and stacked mobile layout. Dark mode uses matching tokens. Native controls provide visible focus and semantic labels.
+
+### Acceptance and delivery
+
+- [ ] First visit displays one item, ₹1,200 starting price, and a five-minute countdown.
+- [ ] A non-empty display name and valid bid strictly above the leader add a history row and update the leader.
+- [ ] Invalid, equal, lower, over-precision, and malformed bids leave the leader and history unchanged.
+- [ ] Refresh preserves bids and the same end time; other tabs receive browser-storage updates.
+- [ ] At/after deadline, bids are rejected; the app names the highest bidder or reports the lot unsold.
+- [ ] Reset requires confirmation, clears bids, and starts a new timer.
+- [ ] Light/dark mode works and persists when browser storage is available.
+- [ ] Phone/tablet/desktop layouts, keyboard focus, and reduced-motion behavior are checked before handoff.
+- **Timebox:** brief/scope 4 min; timer/bid vertical slice 16 min; UI/theme 12 min; edge handling 4 min; integration, checks, and demo rehearsal 9 min. Protect the final 20% (9 min) for verification and submission.
+- **Risks:** localStorage is not a trusted shared ledger; client clocks can be changed; a static demo cannot safely determine real winners. A backend with atomic bid writes and server time is required for a real multi-device auction.
+- **Deployment:** static hosting is suitable for a non-production demo. Netlify Drop is the quick manual option; publish only `round-2-event-auction` and use synthetic data.
