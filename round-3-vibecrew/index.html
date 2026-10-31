@@ -213,6 +213,21 @@
             <div class="team-header-band"><div><span class="eyebrow eyebrow-small">WORKSPACE MEMBERS</span><strong>04 <small>preview identities</small></strong></div><p>Member roles are examples. No authentication or invitations are enabled yet.</p><span class="preview-chip"><span></span> NOT CONNECTED</span></div>
             <div class="member-table" id="member-list"></div>
             <section class="panel team-activity"><div class="panel-heading"><div><div class="eyebrow eyebrow-small">AUDIT TRAIL · SAMPLE EVENTS</div><h2>Latest project activity</h2></div><span class="activity-note">Not live or cross-device</span></div><div class="activity-list activity-list-wide" id="team-activity-list"></div></section>
+            <section class="panel agent-connect-panel" aria-labelledby="agent-connect-title">
+              <div class="panel-heading"><div><div class="eyebrow eyebrow-small">IDE CONNECTION · REMOTE MCP</div><h2 id="agent-connect-title">Bring VibeCrew into your coding agent.</h2></div><span class="preview-chip" id="agent-connect-status"><span></span> SIGN IN REQUIRED</span></div>
+              <p class="agent-connect-intro">Connect Codex, Cursor, or another Streamable HTTP MCP client to read the current shared plan directly. This integration is read-only, scoped to this workspace, and never sends repository files or runs an agent remotely.</p>
+              <div class="agent-connect-layout">
+                <form id="agent-token-form" class="agent-token-form">
+                  <label class="field-label" for="agent-token-label">Token name</label>
+                  <input class="form-control" id="agent-token-label" maxlength="60" value="My coding agent" required />
+                  <div class="form-row"><div><label class="field-label" for="agent-token-expiry">Expires after</label><select class="form-control" id="agent-token-expiry"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option></select></div><div class="agent-token-action"><span class="field-label" aria-hidden="true">&nbsp;</span><button class="button button-primary full-button" type="submit">Create read-only token</button></div></div>
+                  <p class="agent-token-note">The token is shown once. It can read only this workspace and can be revoked at any time.</p>
+                  <p class="form-error" id="agent-token-error" role="alert" hidden></p>
+                </form>
+                <div class="agent-token-list-wrap"><div class="eyebrow eyebrow-small">YOUR WORKSPACE TOKENS</div><div id="agent-token-list" class="agent-token-list" aria-live="polite"><p class="empty-column">Sign in to manage agent access.</p></div></div>
+              </div>
+              <details class="agent-setup-details"><summary>How IDE access works</summary><p>Each teammate creates their own token while signed in. Add the endpoint and bearer token to the IDE’s user-level MCP settings, then restart the agent. Use <code>get_project_context</code> with this project ID for current decisions and the task plan, or <code>get_my_tasks</code> for your assignments. Tools read fresh shared data on each call.</p><p>Keep tokens in your personal IDE configuration or environment variables, never in the repository. Revoke them here when a device is lost or access should end.</p><label class="field-label" for="agent-mcp-endpoint">VibeCrew MCP endpoint</label><input class="form-control mono-input" id="agent-mcp-endpoint" readonly value="Configured after sign-in" /><label class="field-label" for="agent-mcp-project-id">Project ID for get_project_context</label><div class="agent-project-id-row"><input class="form-control mono-input" id="agent-mcp-project-id" readonly value="Sign in to reveal the project ID" /><button class="button button-outline button-small" type="button" data-action="copy-agent-project-id" disabled>Copy ID</button></div></details>
+            </section>
             <div class="role-note"><div class="eyebrow eyebrow-small">ROLE BOUNDARIES — TARGET DESIGN</div><p><b>OWNER</b> manages workspace and gates · <b>LEAD</b> owns brief, decisions, planning · <b>MEMBER</b> claims and updates work · <b>REVIEWER</b> records review evidence. The backend must enforce these rules on every protected operation.</p></div>
           </section>
 
@@ -265,6 +280,13 @@
         <p id="decision-form-error" class="form-error" role="alert" hidden></p>
         <div class="modal-actions"><button class="button button-quiet decision-close" type="button">Cancel</button><button class="button button-primary" type="submit">Save proposal</button></div>
       </form>
+    </dialog>
+    <dialog class="modal agent-token-dialog" id="agent-token-dialog" aria-labelledby="agent-token-dialog-title">
+      <div class="modal-head"><div><div class="eyebrow eyebrow-small">PERSONAL MCP CREDENTIAL</div><h2 id="agent-token-dialog-title">Copy your token now.</h2></div><button class="icon-button agent-token-close" type="button" aria-label="Close dialog">×</button></div>
+      <p class="modal-subtitle">This bearer token is shown once and grants read-only access to this workspace until it expires or you revoke it. Keep it out of source files and screenshots.</p>
+      <label class="field-label" for="agent-token-output">Personal token <small>shown once</small></label><input class="form-control mono-input" id="agent-token-output" readonly autocomplete="off" />
+      <p class="agent-token-expiry-note" id="agent-token-expiry-note"></p>
+      <div class="modal-actions"><button class="button button-outline" type="button" data-action="copy-agent-token">Copy token</button><button class="button button-primary agent-token-close" type="button">Done</button></div>
     </dialog>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </body>

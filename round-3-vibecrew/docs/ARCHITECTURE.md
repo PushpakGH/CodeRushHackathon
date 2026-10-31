@@ -10,12 +10,23 @@ Static browser client (HTML / CSS / JavaScript)
      decision acceptance, and context refresh
              ↓ HTTPS
 Supabase Auth + Postgres (project kmlzmgmpyajdtbrsxtoq, ap-south-1)
+             ↑ per-user read-only MCP tools
+Supabase Edge Function (vibecrew-mcp) — hashes/validates personal bearer token,
+checks live workspace membership, and scopes each query to that workspace
+             ↑ HTTPS Streamable HTTP
+Codex remote MCP or local stdio bridge for Cursor and similar IDE clients
 
 GitHub = code, branches, PRs, CI and merge source of truth
 Developer machine = local repository, editor, tests and local coding agent
 ```
 
 The browser is a view/cache, not the source of truth. The client can be hosted as static files; Supabase holds coordination data. A local synthetic preview remains available if the CDN/backend is unavailable. It is labeled and never written to the shared database.
+
+## IDE context boundary
+
+`vibecrew-mcp` offers only `get_project_context(projectId)` and `get_my_tasks()`. Tokens contain 256 bits of random material; only their SHA-256 hashes are stored. Each request checks token expiry/revocation and the token owner's current workspace membership. The service-role credential is server-side only. Queries explicitly constrain workspace and project; assigned-task reads constrain owner to the token user. Tokens are revocable and capped at 90 days.
+
+The local stdio bridge sends the token over HTTPS and mirrors the two read tools into IDEs that use local MCP processes. It does not read local code, edit files, write to VibeCrew, or execute agents. Task status and code review metadata stay in VibeCrew UI/GitHub. A valid HTTP health response does not prove a real user's token or workspace data path; that needs authenticated testing.
 
 ## Route and role inventory
 

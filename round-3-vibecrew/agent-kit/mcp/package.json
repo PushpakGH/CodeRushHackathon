@@ -1,0 +1,19 @@
+{
+  "name": "@vibecrew/mcp-bridge",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Read-only local stdio bridge from MCP-compatible IDEs to a VibeCrew workspace.",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
+    "zod": "^4.0.0"
+  }
+}

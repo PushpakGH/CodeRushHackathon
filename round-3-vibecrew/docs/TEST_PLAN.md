@@ -1,30 +1,29 @@
 # Verification status
 
-Status vocabulary: **VERIFIED** means observed in an actual running app or relevant check; **FAILED** means attempted and broken; **NOT TESTED** means no evidence yet.
+Status vocabulary: **VERIFIED** means observed running or returned by a check; **NOT TESTED** means no evidence yet.
 
 | Gate | Status | Evidence / remaining work |
 |---|---|---|
-| JavaScript syntax | VERIFIED | `node --check round-3-vibecrew/app.js` exits 0 |
-| Static server and entry route | VERIFIED | `http://localhost:4178/` is open in the in-app browser and renders the sign-in screen |
-| Local sample preview and task board | VERIFIED | Opened the preview; board, task cards, and mobile navigation rendered |
-| Auth screen | VERIFIED | Supabase-backed email OTP form rendered; no email was submitted |
-| Phone visual layout | VERIFIED | In-app browser screenshot at 375 px wide; no visible horizontal overflow in the task board |
-| Tablet and desktop layout | NOT TESTED | The current browser control surface did not provide a viewport override |
-| Create/join workspace with real Auth session | NOT TESTED | Needs user email sign-in and Auth redirect/email setup |
-| Shared task/decision/release writes | NOT TESTED | Needs authenticated owner account |
-| Invalid/expired/full invite and double-claim conflict | NOT TESTED | Database functions contain checks; no runtime user sessions to exercise them |
-| Cross-workspace RLS isolation | NOT TESTED | Tables show RLS enabled; needs two accounts/workspaces and direct unauthorized-read verification |
-| Supabase schema/migrations | VERIFIED | Remote migration list shows `20261031104215` and `20261031104310`; all 8 public tables report RLS enabled |
-| Supabase security advisor | REVIEWED | Six warnings are scoped signed-in `SECURITY DEFINER` RPCs; no anonymous execute warning in current advisor output |
-| Build/lint/test suites | NOT APPLICABLE | Plain static HTML/CSS/JS project has no package manifest or configured build/test scripts |
-| Preview deployment and deployed sign-in | NOT RUN | No hosting provider deployed/configured |
+| Deployed frontend | VERIFIED | https://glittery-trifle-03e3fd.netlify.app/ loads the VibeCrew sign-in page and app shell |
+| Hosted CSS and UI script | VERIFIED | `styles.css` is loaded; the sample board and Agent Context route render and respond |
+| Sample work queue/context pack | VERIFIED | Opened queue, reviewed overlap warnings, generated and refreshed a synthetic task context pack |
+| Responsive overflow | VERIFIED | Prior local checks at 375, 768 and 1280 px had no horizontal overflow; deployed app also had none at observed width |
+| Supabase schema | VERIFIED | Five remote migrations are applied through `20261031112816`; all 8 public tables have RLS enabled |
+| Supabase MCP endpoint | VERIFIED | Health returns 200 and lists `get_project_context`, `get_my_tasks`; unauthenticated request returns 401 |
+| Local stdio MCP bridge | VERIFIED | `npm test --prefix agent-kit/mcp`: 1 passed, 0 failed (loopback permission granted for this test) |
+| Auth redirect for Netlify preview | VERIFIED | Exact `https://glittery-trifle-03e3fd.netlify.app/` origin is allowlisted |
+| Syntax/diff hygiene | VERIFIED | `node --check` for app and bridge; `git diff --check` passed |
+| Real email sign-in/shared workspace | NOT TESTED | User selected sample-only verification; no one-time email was sent |
+| Real database records | NOT TESTED | At check time: 0 workspaces, projects, tasks and agent tokens |
+| Authenticated MCP calls | NOT TESTED | Requires real account, workspace, personal token and project ID |
+| Two-account sync and RLS isolation | NOT TESTED | Needs two real accounts and membership tests |
+| Supabase security advisor | REVIEWED | Six warnings remain for authenticated SECURITY DEFINER workflow RPCs; review the underlying function scoping before production use |
 
-## Before judging
+## Demo path
 
-1. Configure Supabase Auth Site URL and Redirect URLs for the actual deployed origin; test email delivery.
-2. Sign in as an owner; create a workspace and task; invite a separate account as member; verify shared data and task claim.
-3. Try the same task from two sessions and confirm the stale second update is rejected and refreshed.
-4. Confirm another account with no membership cannot read or mutate the workspace; leave all unauthorized attempts unrecorded as successful.
-5. Verify invite expiry/cap by inspecting database behavior or dedicated test data, not a real teammate's live invite.
-6. Inspect phone, tablet, and desktop after deployment and verify context export and essential keyboard flows.
-7. Keep all release checks as **NOT TESTED** until evidence is captured; recording status alone does not constitute proof.
+1. Open the Netlify URL and choose **Explore the local sample preview**.
+2. In **Work queue**, show task ownership, acceptance checks, and advisory path overlap. Explain that overlaps are hints, not Git conflict detection.
+3. Open **Agent context**, select a task, and show the generated `VIBECREW_CONTEXT.md` with decisions, task scope, acceptance criteria and expected checks. Refresh it to clear the stale snapshot indicator; copy or download it.
+4. State that sample edits are synthetic and local to that browser session. They do not show cross-device sharing or authenticated IDE access.
+
+For a real team demo, sign in, create a workspace/project and tasks, invite a second account, create an individual MCP token, then configure Codex or Cursor using `agent-kit/mcp/README.md`. The IDE tools are read-only; code stays local and goes through GitHub.

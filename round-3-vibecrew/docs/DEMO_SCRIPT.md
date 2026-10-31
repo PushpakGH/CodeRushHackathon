@@ -1,14 +1,17 @@
 # Demo script — 2 minutes
 
-## Preferred shared demo (only after Auth and redirect are configured)
+## Current sample-only walkthrough
 
-1. **Problem (15 sec):** distributed teams and local coding agents lose time when plans and decisions are scattered.
-2. **Shared setup (25 sec):** sign in as the owner, create the team/project, and invite a second test account. Demonstrate shared state only if both accounts have actually completed email sign-in.
-3. **Coordination (25 sec):** create or claim a scoped task, show its owner/status and the advisory path-overlap warning. Explain the warning does not predict Git merge conflicts.
-4. **Agent handoff (30 sec):** open Agent context, select a task, show objective, accepted decisions, scope, acceptance criteria and test plan; copy/download the Markdown pack.
-5. **Revision (15 sec):** propose and accept a decision as owner; show project revision change and a stale task context before refreshing it.
-6. **Honest close (10 sec):** show release checks; mark only checks supported by evidence. Name untested email delivery, RLS isolation, conflict handling or deployment rather than implying they were verified.
+1. **Open (10 sec):** Visit https://glittery-trifle-03e3fd.netlify.app/ and choose **Explore the local sample preview**. Say the browser sample is synthetic; it demonstrates interaction, not shared account data.
+2. **Coordinate (25 sec):** Open **Work queue**. Show task owners, priorities, acceptance checks and path-overlap advisory. Clarify that overlap is a coordination hint, not Git conflict prediction.
+3. **Handoff (45 sec):** Open **Agent context** and select VBC-014. Show how one Markdown pack carries accepted decisions, task scope, dependencies, acceptance criteria and expected checks to a local IDE agent. Refresh the stale snapshot, then use Copy or Download.
+4. **Be explicit (10 sec):** Sample identities, edits and context are browser-local and reset. The live Supabase and MCP services are deployed, but this walkthrough has not exercised real accounts or authenticated IDE calls.
 
-## Fallback if live Auth is not ready
+## Real team workflow when signed in
 
-Choose **Explore the local sample preview**. State that the screen uses synthetic data and that edits are temporary. Show the queue overlap, sample decision/context revision, context download, and NOT TESTED release status. Do not claim shared persistence or cross-device behavior.
+1. Sign in via one-time email link; create a workspace/project and task plan.
+2. Invite a teammate; each person signs in and creates their own personal MCP token.
+3. Configure Codex with the remote endpoint, or Cursor with the local bridge, following `agent-kit/mcp/README.md`.
+4. Call `get_project_context` with the project ID and `get_my_tasks` in the IDE. The IDE reads shared coordination data; code and agent execution remain local, and code moves through GitHub.
+
+Do not describe the current sample preview as live cross-device sync. Do not claim authenticated MCP, invite redemption, or two-account RLS behavior until those flows are exercised with real accounts.

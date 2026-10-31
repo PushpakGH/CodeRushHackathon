@@ -17,6 +17,17 @@ The browser uses `@supabase/supabase-js` with the project URL and publishable ke
 | Refresh task context | `rpc('refresh_task_context', { p_task_id, p_expected_version })` | Member/manager rules and expected version; records current context revision |
 | Update release status | Update `release_checks` status/updater/timestamp for current project | Owner/lead RLS; evidence field exists but the current UI does not edit it |
 
+## MCP contract (deployed)
+
+Endpoint: `https://kmlzmgmpyajdtbrsxtoq.supabase.co/functions/v1/vibecrew-mcp`. The Edge Function validates `Authorization: Bearer vbc_live_<random>` by hashing it and looking up an active personal token. It checks expiry, revocation, and current membership for every request; invalid/missing credentials receive HTTP 401 before MCP tools are served.
+
+| Tool | Input | Returned data | Boundary |
+|---|---|---|---|
+| `get_project_context` | `{ projectId: UUID }` | Current project objective/revision, accepted decisions, up to 100 tasks with acceptance/test plan and scope, team roles, release checks, and recent activity | Project must belong to the token's workspace |
+| `get_my_tasks` | `{}` | Up to 100 tasks assigned to the token owner across workspace projects | `owner_id` is the token's user ID |
+
+There are no MCP write tools, local file tools, prompts, or agent execution endpoints. Codex can use the remote HTTP endpoint; Cursor and similar local-stdio clients use the bridge documented at `agent-kit/mcp/README.md`. The stdio bridge was verified with a mock MCP endpoint; authenticated calls against the deployed Supabase data path still require a real user and token.
+
 ## Known contract gaps
 
-No brief editing, project switching UI, task editing/deletion, dependency mutation, PR metadata API, role promotion/removal, invite revocation, or release evidence editing exists. The app has a sample-only local preview. Realtime, pagination, request IDs, custom API rate limits, and richer retry/backoff are deferred. Shared/authenticated success and failure behavior remains unverified until a user signs in and uses a workspace.
+No brief editing, project switching UI, task editing/deletion, dependency mutation, PR metadata API, role promotion/removal, invite revocation, or release evidence editing exists. The app has a sample-only local preview. MCP task writeback is intentionally deferred; updates remain in the VibeCrew UI. Realtime, pagination, request IDs, custom API rate limits, and richer retry/backoff are deferred. Shared/authenticated success and failure behavior remains unverified until a user signs in and uses a workspace.

@@ -6,9 +6,9 @@ Small distributed engineering teams use different local AI coding agents on sepa
 
 ## Primary journey
 
-Owner signs in by email link → creates a workspace and project → invites teammates → creates scoped tasks with acceptance criteria → a teammate claims or updates assigned work → contributor exports a current Markdown context pack → team proposes and accepts decisions → release owners track readiness.
+Owner signs in by email link → creates a workspace and project → invites teammates → creates scoped tasks with acceptance criteria → a teammate claims or updates assigned work → each contributor connects a local agent through MCP to read the same current project context → team proposes and accepts decisions → release owners track readiness.
 
-**Demo moment:** two members should see the same accepted decision, assigned task, revision, and activity after separate sign-ins. That cross-account flow is the intended demo but has not been exercised yet.
+**Demo moment:** two members should see the same accepted decision and task from separate sign-ins, then ask different local IDE agents for the same VibeCrew project context. That cross-account/MCP flow is the intended demo but has not been exercised with real user accounts yet.
 
 ## Scope
 
@@ -20,6 +20,7 @@ Owner signs in by email link → creates a workspace and project → invites tea
 - Task creation and atomic status update with row version checks; member may claim unassigned work and update owned tasks; owner/lead/reviewer can update status.
 - Decision proposal and owner/lead acceptance with project context revision increment.
 - Client-built context Markdown copy/download, stale revision indicator, path-overlap warning, local preview mode, dark/light theme.
+- Remote, read-only MCP access for each contributor's local coding agent: fetch current project context or the caller's assigned tasks through a workspace-scoped personal token.
 - Five-second polling while the app is visible.
 
 ### P1 — deferred
@@ -28,7 +29,7 @@ Owner signs in by email link → creates a workspace and project → invites tea
 
 ### P2 — out of scope
 
-- IDE extensions, remote agent execution, shared editor, GitHub App writes/auto-merge, chat/video, enterprise SSO, paid AI behavior, and production hosting/data.
+- Native IDE extensions, IDE writeback, remote agent execution, shared editor, GitHub App writes/auto-merge, chat/video, enterprise SSO, paid AI behavior, and production hosting/data. MCP is the provider-neutral bridge between shared planning data and local agents.
 
 ## Roles and boundaries
 
@@ -52,6 +53,9 @@ The database enforces membership and manager/owner checks. Client-side hidden/di
 | Task status update rejects stale version and enforces role/ownership | Database RPC implemented; concurrency/authorization runtime tests not run |
 | Invite redemption works, including expired/full/invalid cases | Database checks implemented; runtime test not run |
 | Decision acceptance updates revision atomically | Database RPC implemented; runtime test not run |
+| MCP stdio bridge exposes only two read tools and forwards an authenticated call | Verified with a local MCP integration test |
+| Deployed MCP health works and unauthenticated tools/list is rejected | Verified: health 200; tools/list 401 |
+| A real user token can read a workspace project over MCP | Not tested; no authenticated account/token exists yet |
 | Phone/tablet/desktop visual behavior | Phone view observed; tablet and desktop views not yet observed |
 | Public deployment and email redirect | Not run |
 
@@ -60,5 +64,6 @@ The database enforces membership and manager/owner checks. Client-side hidden/di
 - Supabase project `kmlzmgmpyajdtbrsxtoq` in `ap-south-1` was created in PushpakGH's organization at an approved quote of $0/month.
 - Only the publishable key is in the client. Security relies on reviewed RLS and database functions; the six Supabase advisor warnings are for intentional authenticated `SECURITY DEFINER` RPCs that validate session, membership, role, and versions.
 - Supabase Auth email delivery and allowed redirect origins still need dashboard configuration and a real end-to-end sign-in check.
-- Current local UI is served from an already running static server at port 4178. No preview hosting has been configured.
+- MCP shares coordination context only. It cannot inspect or synchronize local files, write task updates, or execute agents; GitHub remains the code source of truth.
+- The hosted MCP endpoint is live; the static frontend preview deployment and email sign-in are not yet complete.
 - No external GitHub actions, factual outcome metrics, or real user content are fabricated.

@@ -1,6 +1,6 @@
 # SDLC plan and phase gates
 
-The product lifecycle is explicit: **Discovery → Design → Ready → Implementation → Integration → Release**. The current UI displays the workflow and the Supabase schema persists workspaces, tasks, decisions, activity, and release-check status. Brief approvals, dependency validation, GitHub integration metadata, release evidence, and full gate enforcement remain future work.
+The product lifecycle is explicit: **Discovery → Design → Ready → Implementation → Integration → Release**. The current UI displays the workflow and Supabase persists workspaces, tasks, decisions, activity, and release-check status. A read-only MCP layer lets local IDE agents read the current project plan and a contributor's task list. Brief approvals, dependency validation, GitHub integration metadata, release evidence, IDE writeback, and full gate enforcement remain future work.
 
 | Phase | Required artifacts | Exit condition |
 |---|---|---|
@@ -32,4 +32,4 @@ Membership and permission checks are enforced in RLS and database functions, not
 6. **Integration (10 min):** manual PR metadata and release checklist.
 7. **Protected close (15–20 min):** browser checks, mobile/desktop, deployment preview if already authorized/free, demo rehearsal, honest status.
 
-The static client and schema are wired to Supabase. Remaining integration work is configuring Auth redirect/email delivery, using at least two authenticated accounts, and verifying RLS/conflict behavior. If Auth is not ready, keep the demo on the labeled synthetic preview; do not call it distributed.
+The static client, schema, and read-only MCP endpoint are deployed to Supabase. The local stdio bridge passes a mock-server integration test; the real-user token path remains unverified until Auth is configured and a user signs in. Remaining integration work is the public frontend preview, Auth redirect/email delivery, two authenticated accounts, and RLS/conflict verification. If Auth is not ready, keep the demo on the labeled synthetic preview; do not call it distributed.

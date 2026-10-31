@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "@modelcontextprotocol/server": "npm:@modelcontextprotocol/server@2",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2",
+    "zod/v4": "npm:zod@4"
+  }
+}

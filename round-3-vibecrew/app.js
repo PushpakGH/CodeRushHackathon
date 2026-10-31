@@ -204,6 +204,14 @@
     $('#connection-notice .notice-action').insertAdjacentHTML('beforeend', ' <span aria-hidden="true">↗</span>');
     $('#task-modal-subtitle').textContent = 'Preview changes stay in this browser session and reset on reload.';
     $('#task-form button[type="submit"]').textContent = 'Add to preview';
+    $('#agent-connect-status').innerHTML = '<span></span> SIGN IN REQUIRED';
+    $('#agent-connect-status').classList.remove('is-connected');
+    $('#agent-token-form button[type="submit"]').disabled = true;
+    $('#agent-token-label').disabled = true;
+    $('#agent-token-expiry').disabled = true;
+    $('#agent-mcp-project-id').value = 'Sign in to reveal the project ID';
+    $('[data-action="copy-agent-project-id"]').disabled = true;
+    $('#agent-mcp-endpoint').value = 'Sign in to reveal this workspace endpoint';
     $$('[data-action="new-decision"]').forEach(button => { button.hidden = true; });
     $('#auth-screen').hidden = true;
     $('#app-shell').hidden = false;
@@ -378,6 +386,7 @@
       renderAll();
       renderActivity($('#team-activity-list'));
       updateWorkspaceSummary();
+      if (!silent) loadAgentTokens();
       if (!silent) {
         startPolling();
         const initialRoute = location.hash.slice(1);
@@ -425,6 +434,21 @@
     if (teamActivityNote) teamActivityNote.textContent = 'Shared activity · refreshes every 5s';
     const teamActivityEyebrow = $('.team-activity .eyebrow-small');
     if (teamActivityEyebrow) teamActivityEyebrow.textContent = 'AUDIT TRAIL · SHARED EVENTS';
+    const teamEyebrow = $('[data-view="team"] .page-head .eyebrow');
+    if (teamEyebrow) teamEyebrow.innerHTML = '<span class="eyebrow-line"></span> COLLABORATION · VERIFIED MEMBERS';
+    const roleNoteEyebrow = $('.role-note .eyebrow-small');
+    if (roleNoteEyebrow) roleNoteEyebrow.textContent = 'ROLE BOUNDARIES — SERVER ENFORCED';
+    const agentStatus = $('#agent-connect-status');
+    if (agentStatus) {
+      agentStatus.innerHTML = '<span></span> WORKSPACE SCOPED';
+      agentStatus.classList.add('is-connected');
+    }
+    $('#agent-token-form button[type="submit"]').disabled = !liveMode;
+    $('#agent-token-label').disabled = !liveMode;
+    $('#agent-token-expiry').disabled = !liveMode;
+    $('#agent-mcp-endpoint').value = supabaseConfig?.url ? `${supabaseConfig.url.replace(/\/$/, '')}/functions/v1/vibecrew-mcp` : 'MCP endpoint is not configured';
+    $('#agent-mcp-project-id').value = activeProject?.id || 'No project selected';
+    $('[data-action="copy-agent-project-id"]').disabled = !activeProject?.id;
     const teamAction = $('[data-view="team"] .page-head [data-action]');
     if (teamAction) {
       teamAction.textContent = currentRole === 'owner' || currentRole === 'lead' ? 'Invite teammate' : 'Request an invite from a lead';
@@ -800,6 +824,7 @@
     history.replaceState(null, '', `#${route}`);
     if (route === 'tasks') renderTaskBoard();
     if (route === 'context') renderContext();
+    if (route === 'team' && liveMode) loadAgentTokens();
     $('#main-content').focus({ preventScroll: true });
   }
 
@@ -1129,6 +1154,101 @@
     } finally { button.disabled = false; }
   }
 
+  async function loadAgentTokens() {
+    const list = $('#agent-token-list');
+    if (!list) return;
+    if (!liveMode || !activeWorkspace || !currentUser) {
+      list.replaceChildren(emptyMessage('Sign in to create and manage personal agent tokens.'));
+      return;
+    }
+    list.replaceChildren(emptyMessage('Loading workspace tokens…'));
+    try {
+      const { data, error } = await db.from('agent_access_tokens')
+        .select('id, label, created_at, expires_at, revoked_at')
+        .eq('workspace_id', activeWorkspace.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      list.replaceChildren();
+      if (!data?.length) { list.append(emptyMessage('No agent tokens yet. Create one for this IDE.')); return; }
+      for (const token of data) {
+        const row = document.createElement('div'); row.className = 'agent-token-row';
+        const copy = document.createElement('div'); copy.className = 'agent-token-copy';
+        const name = document.createElement('strong'); name.textContent = token.label;
+        const active = !token.revoked_at && new Date(token.expires_at).getTime() > Date.now();
+        const detail = document.createElement('small');
+        detail.textContent = active ? `Expires ${new Date(token.expires_at).toLocaleDateString()}` : token.revoked_at ? 'Revoked' : 'Expired';
+        copy.append(name, detail);
+        const state = document.createElement('span'); state.className = `agent-token-state ${active ? 'is-active' : ''}`; state.textContent = active ? 'ACTIVE' : 'INACTIVE';
+        row.append(copy, state);
+        if (active) {
+          const revoke = document.createElement('button'); revoke.type = 'button'; revoke.className = 'button button-quiet button-small';
+          revoke.dataset.action = 'revoke-agent-token'; revoke.dataset.tokenId = token.id; revoke.textContent = 'Revoke';
+          revoke.setAttribute('aria-label', `Revoke ${token.label} agent token`); row.append(revoke);
+        }
+        list.append(row);
+      }
+    } catch (error) {
+      list.replaceChildren(emptyMessage(`Could not load agent tokens: ${friendlyError(error)}`));
+    }
+  }
+
+  async function createAgentToken(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const errorNode = $('#agent-token-error');
+    const label = String($('#agent-token-label').value || '').trim();
+    const days = Number($('#agent-token-expiry').value);
+    if (!liveMode || !activeWorkspace || !currentUser) { errorNode.textContent = 'Sign in and join a workspace first.'; errorNode.hidden = false; return; }
+    if (!label || label.length > 60) { errorNode.textContent = 'Enter a token name between 1 and 60 characters.'; errorNode.hidden = false; $('#agent-token-label').focus(); return; }
+    if (![7, 30, 90].includes(days)) { errorNode.textContent = 'Choose an expiry of 7, 30, or 90 days.'; errorNode.hidden = false; return; }
+    errorNode.hidden = true;
+    const button = form.querySelector('button[type="submit"]'); button.disabled = true;
+    button.textContent = 'Creating…';
+    try {
+      const bytes = crypto.getRandomValues(new Uint8Array(32));
+      const rawToken = `vbc_live_${btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')}`;
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawToken));
+      const tokenHash = [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('');
+      const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000 - 60_000).toISOString();
+      const { error } = await db.from('agent_access_tokens').insert({
+        workspace_id: activeWorkspace.id,
+        label,
+        token_hash: tokenHash,
+        expires_at: expiresAt
+      });
+      if (error) throw error;
+      $('#agent-token-output').value = rawToken;
+      $('#agent-token-expiry-note').textContent = `Read-only access to ${activeWorkspace.name} · expires ${new Date(expiresAt).toLocaleString()}. Copy it now; it cannot be retrieved later.`;
+      $('#agent-token-dialog').showModal();
+      await loadAgentTokens();
+      form.reset();
+      showToast('Personal read-only agent token created.');
+    } catch (error) {
+      errorNode.textContent = `Could not create the token: ${friendlyError(error)}`; errorNode.hidden = false;
+    } finally {
+      button.disabled = !liveMode;
+      button.textContent = 'Create read-only token';
+    }
+  }
+
+  function clearAgentToken() {
+    $('#agent-token-output').value = '';
+    $('#agent-token-expiry-note').textContent = '';
+  }
+
+  async function revokeAgentToken(tokenId) {
+    if (!liveMode || !activeWorkspace || !tokenId) return;
+    try {
+      const { error } = await db.from('agent_access_tokens').update({ revoked_at: new Date(Date.now() - 60_000).toISOString() })
+        .eq('id', tokenId).eq('workspace_id', activeWorkspace.id).is('revoked_at', null);
+      if (error) throw error;
+      await loadAgentTokens();
+      showToast('Agent token revoked. Future MCP calls will be denied.');
+    } catch (error) {
+      showToast(`Could not revoke token: ${friendlyError(error)}`);
+    }
+  }
+
   async function saveReleaseStatus(item, status) {
     if (!item || !['NOT_TESTED', 'VERIFIED', 'FAILED'].includes(status)) return;
     if (!liveMode) {
@@ -1172,6 +1292,22 @@
         output.focus(); output.select();
         if (navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => setAuthMessage('#invite-message', 'Invitation link copied. Share it only with the intended teammate.')).catch(() => setAuthMessage('#invite-message', document.execCommand('copy') ? 'Invitation link copied.' : 'Copy was blocked; the selected link is ready to copy manually.'));
         else setAuthMessage('#invite-message', document.execCommand('copy') ? 'Invitation link copied.' : 'Copy was blocked; the selected link is ready to copy manually.');
+        break;
+      }
+      case 'revoke-agent-token': revokeAgentToken(action.dataset.tokenId); break;
+      case 'copy-agent-project-id': {
+        const projectId = $('#agent-mcp-project-id').value;
+        if (!projectId || projectId === 'No project selected' || projectId === 'Sign in to reveal the project ID') { showToast('Sign in and select a project first.'); break; }
+        if (navigator.clipboard?.writeText) navigator.clipboard.writeText(projectId).then(() => showToast('Project ID copied.')).catch(() => showToast('Copy was blocked; select the project ID manually.'));
+        else showToast('Copy is unavailable here; select the project ID manually.');
+        break;
+      }
+      case 'copy-agent-token': {
+        const output = $('#agent-token-output');
+        if (!output.value) { showToast('This token is no longer available. Create a new one.'); break; }
+        output.focus(); output.select();
+        if (navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => showToast('Personal agent token copied.')).catch(() => showToast(document.execCommand('copy') ? 'Personal agent token copied.' : 'Copy was blocked; the token is selected.'));
+        else showToast(document.execCommand('copy') ? 'Personal agent token copied.' : 'Copy was blocked; the token is selected.');
         break;
       }
       case 'new-decision':
@@ -1218,6 +1354,9 @@
     const button = $('#task-form button[type="submit"]'); button.disabled = true;
     createTask(new FormData(event.currentTarget)).finally(() => { taskSubmitting = false; button.disabled = false; });
   });
+  $('#agent-token-form').addEventListener('submit', createAgentToken);
+  $$('.agent-token-close').forEach(button => button.addEventListener('click', () => $('#agent-token-dialog').close()));
+  $('#agent-token-dialog').addEventListener('close', clearAgentToken);
   $('.modal-close').addEventListener('click', () => $('#task-dialog').close());
   $$('.connection-close').forEach(button => button.addEventListener('click', () => $('#connection-dialog').close()));
   $$('.invite-close').forEach(button => button.addEventListener('click', () => { $('#invite-dialog').close(); $('#invite-url-output').value = ''; }));
@@ -1251,7 +1390,7 @@
   themeToggle.addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true));
 
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') { if ($('#task-dialog').open) $('#task-dialog').close(); if ($('#connection-dialog').open) $('#connection-dialog').close(); if ($('#invite-dialog').open) { $('#invite-dialog').close(); $('#invite-url-output').value = ''; } if ($('#decision-dialog').open) $('#decision-dialog').close(); }
+    if (event.key === 'Escape') { if ($('#task-dialog').open) $('#task-dialog').close(); if ($('#connection-dialog').open) $('#connection-dialog').close(); if ($('#invite-dialog').open) { $('#invite-dialog').close(); $('#invite-url-output').value = ''; } if ($('#decision-dialog').open) $('#decision-dialog').close(); if ($('#agent-token-dialog').open) $('#agent-token-dialog').close(); }
     if (!event.altKey && !event.ctrlKey && !event.metaKey && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) && event.key === '1') navigate('overview');
   });
 
