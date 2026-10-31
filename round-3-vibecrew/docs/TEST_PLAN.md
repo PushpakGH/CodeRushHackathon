@@ -1,29 +1,40 @@
 # Verification status
 
-Status vocabulary: **VERIFIED** means observed running or returned by a check; **NOT TESTED** means no evidence yet.
+**Checked on 2026-10-31.** Status vocabulary: **VERIFIED** means the named observable check passed. **NOT TESTED** means no evidence from the required user flow is available.
 
 | Gate | Status | Evidence / remaining work |
 |---|---|---|
-| Deployed frontend | VERIFIED | https://glittery-trifle-03e3fd.netlify.app/ loads the VibeCrew sign-in page and app shell |
-| Hosted CSS and UI script | VERIFIED | `styles.css` is loaded; the sample board and Agent Context route render and respond |
-| Sample work queue/context pack | VERIFIED | Opened queue, reviewed overlap warnings, generated and refreshed a synthetic task context pack |
-| Responsive overflow | VERIFIED | Prior local checks at 375, 768 and 1280 px had no horizontal overflow; deployed app also had none at observed width |
-| Supabase schema | VERIFIED | Five remote migrations are applied through `20261031112816`; all 8 public tables have RLS enabled |
-| Supabase MCP endpoint | VERIFIED | Health returns 200 and lists `get_project_context`, `get_my_tasks`; unauthenticated request returns 401 |
-| Local stdio MCP bridge | VERIFIED | `npm test --prefix agent-kit/mcp`: 1 passed, 0 failed (loopback permission granted for this test) |
-| Auth redirect for Netlify preview | VERIFIED | Exact `https://glittery-trifle-03e3fd.netlify.app/` origin is allowlisted |
-| Syntax/diff hygiene | VERIFIED | `node --check` for app and bridge; `git diff --check` passed |
-| Real email sign-in/shared workspace | NOT TESTED | User selected sample-only verification; no one-time email was sent |
-| Real database records | NOT TESTED | At check time: 0 workspaces, projects, tasks and agent tokens |
-| Authenticated MCP calls | NOT TESTED | Requires real account, workspace, personal token and project ID |
-| Two-account sync and RLS isolation | NOT TESTED | Needs two real accounts and membership tests |
-| Supabase security advisor | REVIEWED | Six warnings remain for authenticated SECURITY DEFINER workflow RPCs; review the underlying function scoping before production use |
+| Root cause | VERIFIED | Supabase logs showed PostgREST requests ordering `release_checks` by nonexistent `created_at`; the resulting reads returned HTTP 400. |
+| Live schema | VERIFIED | Live `public.release_checks` columns include `updated_at` and do not include `created_at`. |
+| Corrected ordering query | VERIFIED | The live table returned its existing 28 rows when ordered by `updated_at`; all 28 have a timestamp. |
+| Workspace/project data present | VERIFIED | Live aggregate query returned 4 workspaces, 4 projects, 4 members, and 28 release checks. These counts do not verify who can sign in or whether the members are on one team. |
+| Frontend workspace loader fix | VERIFIED LOCALLY | Source and static deployment copy sort release checks by `updated_at`. The Netlify static bundle still needs to be published before the shared site receives this change. |
+| MCP context query fix | DEPLOYED | The `vibecrew-mcp` Edge Function redeployed successfully as active version 2 with the corrected query. Authenticated tool-call verification remains. |
+| Local preview | VERIFIED | `http://127.0.0.1:4178/` and `/app.js` both returned HTTP 200; the fresh local app rendered the sign-in screen and entered the sample workspace. |
+| CSS/HTML static assets | PREVIOUSLY VERIFIED | The Netlify preview loaded styles and rendered the application in the prior release check. Recheck after publishing this change. |
+| JS syntax | VERIFIED | `node --check` passed for `app.js` and the MCP bridge server. |
+| MCP bridge tests | VERIFIED | `npm test --prefix round-3-vibecrew/agent-kit/mcp`: 1 passed, 0 failed (run with local-loopback permission because the sandbox blocks the test server). |
+| Email sign-in and workspace create/join | NOT TESTED IN THIS TURN | No inbox link was opened in a real account during this verification. |
+| Two-account sync and RLS isolation | NOT TESTED | Requires two real signed-in accounts in one shared workspace; the synthetic sample is not evidence. |
+| Authenticated MCP tool calls | NOT TESTED | Requires a real personal token and project ID from an authenticated workspace. |
+| Supabase security advisor | REVIEWED | Six warnings remain for authenticated `SECURITY DEFINER` workflow RPCs and one for leaked-password protection; review before production use. |
 
-## Demo path
+## Regression steps after deploying
 
-1. Open the Netlify URL and choose **Explore the local sample preview**.
-2. In **Work queue**, show task ownership, acceptance checks, and advisory path overlap. Explain that overlaps are hints, not Git conflict detection.
-3. Open **Agent context**, select a task, and show the generated `VIBECREW_CONTEXT.md` with decisions, task scope, acceptance criteria and expected checks. Refresh it to clear the stale snapshot indicator; copy or download it.
-4. State that sample edits are synthetic and local to that browser session. They do not show cross-device sharing or authenticated IDE access.
+1. Hard-refresh the Netlify site so the browser loads the corrected `app.js`.
+2. Sign in with an existing account that has a workspace. Confirm that the workspace opens and the release checklist renders.
+3. Sign in with the organizer account in one browser, create an invitation, and join from a second account/browser. Confirm the second account joins the same workspace (same workspace/project names).
+4. Update one low-risk task status in browser A. In browser B, wait up to five seconds and verify the new status appears. Do not use local sample preview for this test.
+5. Create a personal MCP token for the second account. Call `get_project_context` with the project's ID; verify it returns current shared data. Revoke the token after testing if it is no longer needed.
 
-For a real team demo, sign in, create a workspace/project and tasks, invite a second account, create an individual MCP token, then configure Codex or Cursor using `agent-kit/mcp/README.md`. The IDE tools are read-only; code stays local and goes through GitHub.
+The SQL query used to verify the active schema/data without exposing user email addresses was:
+
+```sql
+select
+  (select count(*) from public.workspaces) as workspaces,
+  (select count(*) from public.projects) as projects,
+  (select count(*) from public.workspace_members) as members,
+  (select count(*) from public.release_checks) as release_checks;
+```
+
+The ordering query used by the application is `select * from public.release_checks where project_id = ... order by updated_at asc`.

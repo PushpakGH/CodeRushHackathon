@@ -78,7 +78,7 @@ function registerTools(identity: AgentIdentity) {
           admin.from("workspace_members").select("user_id, display_name, role").eq("workspace_id", identity.workspaceId),
           admin.from("architecture_decisions").select("decision_key, title, context, decision, consequence, version, created_at").eq("project_id", project.id).eq("status", "ACCEPTED").order("created_at", { ascending: true }),
           admin.from("tasks").select("task_key, title, description, status, priority, owner_id, dependencies, acceptance, test_plan, scope, branch, pr_url, context_revision_seen, updated_at").eq("project_id", project.id).order("created_at", { ascending: true }).limit(100),
-          admin.from("release_checks").select("check_key, title, status, evidence, updated_at").eq("project_id", project.id).order("created_at", { ascending: true }),
+          admin.from("release_checks").select("check_key, title, status, evidence, updated_at").eq("project_id", project.id).order("updated_at", { ascending: true }),
           admin.from("activity_events").select("event_type, summary, created_at").eq("project_id", project.id).order("created_at", { ascending: false }).limit(15),
         ]);
         for (const result of [membersResult, decisionsResult, tasksResult, checksResult, activityResult]) {

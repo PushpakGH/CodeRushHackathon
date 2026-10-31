@@ -1,17 +1,20 @@
-# Demo script — 2 minutes
+# VibeCrew demo script
 
-## Current sample-only walkthrough
+## Best team demo: shared workflow (2–3 minutes)
 
-1. **Open (10 sec):** Visit https://glittery-trifle-03e3fd.netlify.app/ and choose **Explore the local sample preview**. Say the browser sample is synthetic; it demonstrates interaction, not shared account data.
-2. **Coordinate (25 sec):** Open **Work queue**. Show task owners, priorities, acceptance checks and path-overlap advisory. Clarify that overlap is a coordination hint, not Git conflict prediction.
-3. **Handoff (45 sec):** Open **Agent context** and select VBC-014. Show how one Markdown pack carries accepted decisions, task scope, dependencies, acceptance criteria and expected checks to a local IDE agent. Refresh the stale snapshot, then use Copy or Download.
-4. **Be explicit (10 sec):** Sample identities, edits and context are browser-local and reset. The live Supabase and MCP services are deployed, but this walkthrough has not exercised real accounts or authenticated IDE calls.
+Use two accounts already joined to the same workspace. Do not use the local sample preview for this story.
 
-## Real team workflow when signed in
+1. **Open the shared plan:** show the workspace/project, current objective, and task list in browser A.
+2. **Handoff:** open **Agent context**, choose a task, and point out the scope, dependencies, acceptance checks, and current decision revision. Explain that an IDE MCP call reads the same shared plan.
+3. **Show cross-account sync:** in browser A, change one task's status. In browser B, wait up to five seconds for the same task update. This is database polling, not live file transfer.
+4. **Show the IDE connection:** use the teammate's own token to call `get_project_context` with the project's ID. Show its read-only context output.
+5. **State the code boundary:** code stays on each developer's device and moves through GitHub branches/pull requests. VibeCrew does not write files or run agents remotely.
 
-1. Sign in via one-time email link; create a workspace/project and task plan.
-2. Invite a teammate; each person signs in and creates their own personal MCP token.
-3. Configure Codex with the remote endpoint, or Cursor with the local bridge, following `agent-kit/mcp/README.md`.
-4. Call `get_project_context` with the project ID and `get_my_tasks` in the IDE. The IDE reads shared coordination data; code and agent execution remain local, and code moves through GitHub.
+If a second signed-in account is unavailable, demonstrate the sample preview only and label its content synthetic/local. Do not present it as shared sync or claim two-account behavior is verified.
 
-Do not describe the current sample preview as live cross-device sync. Do not claim authenticated MCP, invite redemption, or two-account RLS behavior until those flows are exercised with real accounts.
+## Sample-only walkthrough
+
+1. Open <https://glittery-trifle-03e3fd.netlify.app/> and select **Explore the local sample preview**.
+2. In **Work queue**, show task owners, acceptance checks, and the path-overlap advisory. Explain that overlap is a hint, not Git conflict detection.
+3. Open **Agent context**, select a task, and show how the Markdown pack contains the task scope, dependencies, acceptance criteria, and expected checks. Refresh it and use Copy or Download.
+4. State clearly that sample identities/edits are synthetic and not persistent across refreshes.

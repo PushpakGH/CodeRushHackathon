@@ -312,7 +312,8 @@
         db.from('tasks').select('*').eq('project_id', projectId).order('created_at', { ascending: false }),
         db.from('architecture_decisions').select('*').eq('project_id', projectId).order('created_at', { ascending: false }),
         db.from('activity_events').select('*').eq('project_id', projectId).order('created_at', { ascending: false }).limit(50),
-        db.from('release_checks').select('*').eq('project_id', projectId).order('created_at', { ascending: true })
+        // release_checks has updated_at (not created_at) in the deployed schema.
+        db.from('release_checks').select('*').eq('project_id', projectId).order('updated_at', { ascending: true })
       ]);
       for (const result of [taskResult, decisionResult, activityResult, checkResult]) if (result.error) throw result.error;
 
@@ -491,18 +492,25 @@
 
   function startPolling() {
     stopPolling();
-    pollTimer = window.setInterval(async () => {
-      if (!liveMode || !activeWorkspace || pollInFlight || document.visibilityState === 'hidden') return;
-      pollInFlight = true;
-      try { await loadWorkspace(activeWorkspace.id, activeProject.id, currentMembership, true); }
-      finally { pollInFlight = false; }
-    }, 5000);
+    pollTimer = window.setInterval(refreshWorkspace, 5000);
+  }
+
+  async function refreshWorkspace() {
+    if (!liveMode || !activeWorkspace || !activeProject || pollInFlight || document.visibilityState === 'hidden') return;
+    pollInFlight = true;
+    try { await loadWorkspace(activeWorkspace.id, activeProject.id, currentMembership, true); }
+    finally { pollInFlight = false; }
   }
 
   function stopPolling() {
     if (pollTimer) window.clearInterval(pollTimer);
     pollTimer = null;
   }
+
+  window.addEventListener('online', refreshWorkspace);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshWorkspace();
+  });
 
   let filter = 'all';
   let searchTerm = '';
