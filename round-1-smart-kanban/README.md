@@ -2,6 +2,8 @@
 
 Standalone static project for CodeRush challenge R1-01. It supports task creation, editing, deletion, drag-and-drop/status movement, search, priority filtering, and browser-local persistence.
 
+Use the sun/moon button in the top bar to switch themes. The first visit follows the device color preference; a manual choice is remembered in that browser.
+
 ## Run locally
 
 From this folder, start any static file server, for example:

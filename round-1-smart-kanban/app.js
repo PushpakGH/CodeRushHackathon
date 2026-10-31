@@ -1,5 +1,6 @@
 (() => {
   const STORAGE_KEY = "coderush.round1.kanban.v1";
+  const THEME_KEY = "coderush.theme";
   const statuses = ["todo", "progress", "done"];
   const statusLabels = { todo: "To do", progress: "In progress", done: "Completed" };
   const priorityLabels = { high: "High", medium: "Medium", low: "Low" };
@@ -19,10 +20,32 @@
   const searchInput = $("#task-search");
   const priorityFilter = $("#priority-filter");
   const toast = $("#toast");
+  const themeToggle = $("#theme-toggle");
   let tasks = loadTasks();
   let editingId = null;
   let draggedId = null;
   let toastTimer;
+
+  function setTheme(theme, persist = false) {
+    const nextTheme = theme === "dark" ? "dark" : "light";
+    document.documentElement.dataset.theme = nextTheme;
+    const dark = nextTheme === "dark";
+    const label = dark ? "Switch to light mode" : "Switch to dark mode";
+    themeToggle.setAttribute("aria-label", label);
+    themeToggle.setAttribute("title", label);
+    themeToggle.setAttribute("aria-pressed", String(dark));
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#141b17" : "#f4f5f2");
+    if (persist) {
+      try {
+        localStorage.setItem(THEME_KEY, nextTheme);
+      } catch (error) {
+        console.warn("Could not save the theme preference.", error);
+        showToast("Theme changed for this visit; browser storage is unavailable.", true);
+      }
+    }
+  }
+
+  setTheme(document.documentElement.dataset.theme || "light");
 
   function isoDay(offset) {
     const date = new Date();
@@ -285,6 +308,7 @@
   }
 
   $("#add-task").addEventListener("click", () => openDialog());
+  themeToggle.addEventListener("click", () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true));
   $$(".quick-add, .add-column-task").forEach((button) => button.addEventListener("click", () => openDialog(null, button.dataset.status)));
   $$(".close-dialog").forEach((button) => button.addEventListener("click", closeDialog));
   dialog.addEventListener("click", (event) => { if (event.target === dialog) closeDialog(); });
