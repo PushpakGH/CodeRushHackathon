@@ -124,17 +124,30 @@ The static deployment must include these four files together: `index.html`, `sty
 
 For a manual update, open the existing Netlify site dashboard, go to **Deploys**, and drop the `dist/` output folder into the manual deploy area. Netlify expects the output folder itself, with `index.html` at its root. The exact folder in this checkout is `E:\CODR\Hack\CodeRushHackathon\round-3-vibecrew\dist`. Wait for the deploy to finish, then hard-refresh the live URL. If the site is Git-connected, follow its configured deployment branch instead of assuming a manual upload changed the live site. See [Netlify's deploy guide](https://docs.netlify.com/deploy/create-deploys/) for current options.
 
+#### One-time GitHub → Netlify setup (automatic deploys)
+
+After the feature branch containing VibeCrew is on GitHub, connect the existing Netlify site once:
+
+1. In Netlify, open the site and go to **Project configuration → Build & deploy → Continuous deployment → Repository**. Choose **Link to a different repository** (or **Add new project → Import an existing project** if this is a new site) and authorize GitHub access to `PushpakGH/CodeRushHackathon`.
+2. Set the production branch to the branch you want Netlify to publish. Choose `main` after the VibeCrew changes are merged there, or choose `hackathon/round-3-vibecrew` if the preview should publish directly from that branch.
+3. Under **Build settings**, set **Base directory** to `round-3-vibecrew`, leave **Build command** empty, and set **Publish directory** to `.`. Save and trigger the first deploy.
+4. From then on, every push to the selected production branch deploys automatically. Pull requests/other branches can create deploy previews if enabled. Keep the published directory pointed at `round-3-vibecrew`, since this repository contains multiple round projects.
+
+The repo does not contain a Netlify access token, and its current deployment connection/production branch could not be inspected from this workspace. A user with access must complete the one-time link and branch selection in Netlify. Netlify confirms that linking a Git repository enables continuous deployment on pushes; see its [monorepo configuration guide](https://docs.netlify.com/build/configure-builds/monorepos/) and [repository linking guide](https://docs.netlify.com/build/git-workflows/repo-permissions-linking/).
+
 ## Common problems
 
 - **A teammate sees a workspace-creation form:** they likely opened the public site without the invitation. Ask them to open the organizer's invite URL, sign in, and choose **Join workspace**. Do not create another workspace for them.
 - **Sign-in link does not arrive:** check spam and wait briefly. Supabase's default email delivery can be rate-limited; the project owner may need to configure a verified mail sender. The redirect URL must match the site's origin.
 - **“Could not load this workspace: column release_checks.created_at does not exist”:** this was caused by the UI ordering release checks by a column absent from the schema. The live table has `updated_at`; the loader has been corrected to order by that field. After the corrected static build is deployed, hard-refresh the page and sign in again. The MCP project-context query is corrected to use the same field.
 - **MCP server is missing:** verify the personal token and endpoint, restart the IDE after changing the environment variable, and check that Codex has the TOML section or Cursor has valid JSON at the global `mcp.json` path. Revoke and re-create an expired or exposed token.
+- **Could not create invitation:** only a workspace Owner or Lead can create invite links. Confirm the intended workspace is selected and choose Member or Reviewer. If the page reports the invite service/database is out of sync, refresh once; if the error repeats, send the exact message to the project owner so they can check the Supabase migration/deployment.
 - **A change is not visible immediately:** confirm both people joined the same workspace and project, keep both pages online/visible, and allow up to five seconds for refresh. The MCP tools read fresh data on each call. Retry actions that did not show a success message.
 
 ## Current implementation and limits
 
 - Static responsive HTML/CSS/JavaScript app with persistent light/dark preference.
+- The browser UI does not use React, Redux, or TanStack. This small static MVP has no client build pipeline; adding those libraries now would not fix collaboration or invite failures. The backend is Supabase Auth + Postgres/RLS + SQL RPC, with a Supabase Edge Function using the official MCP TypeScript SDK and a Node.js stdio bridge using the MCP SDK. A framework migration is a separate product decision if the UI grows enough to benefit from component/state tooling.
 - Supabase email one-time-link auth, workspace/project creation, invitation join, member-scoped data, and database role checks.
 - Shared tasks, task status transitions with version checks, architecture decisions, activity, and release-check status updates.
 - Client-generated task context pack, copy/download, stale-context indicators, and advisory path-overlap warnings.

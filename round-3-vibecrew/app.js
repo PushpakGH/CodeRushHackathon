@@ -87,6 +87,23 @@
     return message ? message.slice(0, 220) : 'The request could not be completed. Check your connection and try again.';
   };
 
+  function inviteErrorGuidance(error) {
+    const message = String(error?.message || '').toLowerCase();
+    if (message.includes('vc_can_manage_workspace') && message.includes('does not exist')) {
+      return 'The invite service was out of sync with the database. Its repair is deployed; refresh this page and try again. If it repeats, share this message with the project owner.';
+    }
+    if (message.includes('workspace manager access required') || error?.code === '42501') {
+      return 'Only a workspace Owner or Lead can create invitations. Choose a workspace you manage, or ask its Owner/Lead to create the link.';
+    }
+    if (message.includes('invalid invitation request')) {
+      return 'Choose Member or Reviewer, then try again. If the role selector is already set, refresh the page and retry.';
+    }
+    if (/fetch|network|timeout|offline/.test(message)) {
+      return 'Check your internet connection, keep this page open, then try again. No link was created until the success message appears.';
+    }
+    return `${friendlyError(error)} Next: confirm you are an Owner or Lead in the intended workspace, refresh the page, and retry. If it still fails, copy this full message to the workspace owner.`;
+  }
+
   function setAuthMessage(target, message, isError = false) {
     const node = $(target);
     if (!node) return;
@@ -1158,7 +1175,7 @@
       setAuthMessage('#invite-message', `Link created; expires ${expires}, with up to ${data?.max_uses || 10} uses. Copy and share it now. The raw token is only shown here.`);
       output.focus(); output.select();
     } catch (error) {
-      setAuthMessage('#invite-message', `Could not create invitation: ${friendlyError(error)}`, true);
+      setAuthMessage('#invite-message', `Could not create invitation. ${inviteErrorGuidance(error)}`, true);
     } finally { button.disabled = false; }
   }
 
