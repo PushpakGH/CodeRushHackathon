@@ -1,6 +1,6 @@
 # Round 2 — Event Auction System
 
-Standalone single-page demo for CodeRush challenge R2-01. It runs a five-minute auction for one synthetic prize, validates strictly increasing INR bids, records a public bid history, closes at the persisted deadline, and announces either the winner or that the lot went unsold. Dark mode follows the device preference until changed and remembers the visitor's selection.
+Standalone single-page demo for CodeRush challenge R2-01. Create up to 25 item auctions, set a positive INR starting price and a 1-minute-to-24-hour duration, then switch between lots with separate deadlines and bid histories. Valid bids must exceed the current lot's highest bid; each lot closes at its persisted deadline and shows the winner or an unsold result. Dark mode follows the device preference until changed and remembers the visitor's selection.
 
 ## Run locally
 
@@ -10,11 +10,11 @@ From this folder:
 python -m http.server 4174
 ```
 
-Open <http://localhost:4174> and keep the terminal running. The auction, bid history, and deadline persist in this browser's `localStorage`. Use **Reset demo** to clear the current auction and restart its five-minute timer. Use a private window or clear this project's browser storage for a clean presentation.
+Open <http://localhost:4174> and keep the terminal running. Use **Create auction** to add an item; the timer begins immediately. Auctions, bid history, deadlines, and the selected lot persist in this browser's `localStorage`. **Restart this lot** clears only that lot's bids after confirmation and restarts its configured duration. Use a private window or the per-lot restart control for a clean presentation.
 
 ## Data and demo boundaries
 
-This is a self-contained, single-browser prototype with no account system or server. Display names are self-entered, and bids synchronize between tabs through browser storage events. They do not synchronize across devices or provide server-authoritative ordering; simultaneous remote bidders require a shared backend with atomic bid validation and trusted server time. The prize and bids are synthetic. No real auction, payment, or award is conducted.
+This is a self-contained, single-browser prototype with no account system or server. Anyone using this browser can create lots and bid; display names are self-entered. Auction state syncs between tabs through browser storage events but not across devices, and it cannot provide server-authoritative ordering. Simultaneous remote bidders or organizer-only controls require an authenticated backend with atomic bid validation and trusted server time. The starter prize and bids are synthetic. No real auction, payment, or award is conducted.
 
 ## Deploy quickly with Netlify
 
