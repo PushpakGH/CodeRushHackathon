@@ -130,17 +130,18 @@
     });
   }
 
-  function renderCard(task) {
+  function renderCard(task, isFirstUp = false) {
     const dueState = task.status === "done" ? "" : dateState(task.dueDate);
     const overdueLabel = dueState === "is-overdue" ? "Overdue · " : dueState === "is-today" ? "Due today · " : "";
     const description = task.description ? `<p class="card-description">${escapeHtml(task.description)}</p>` : "";
     const sample = task.sample ? '<span class="sample-tag">Starter</span>' : "";
+    const firstUp = isFirstUp ? '<span class="spotlight-tag">First up</span>' : "";
     const due = task.dueDate
       ? `<span class="due-date ${dueState}"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M5 2v3M11 2v3M2.5 6.5h11"/></svg>${overdueLabel}${formatDueDate(task.dueDate)}</span>`
       : `<span class="due-date"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M5 2v3M11 2v3M2.5 6.5h11"/></svg>No due date</span>`;
 
-    return `<article class="task-card" draggable="true" tabindex="0" data-task-id="${escapeHtml(task.id)}" data-status="${task.status}" aria-label="Task: ${escapeHtml(task.title)}. ${priorityLabels[task.priority]} priority. ${statusLabels[task.status]}.">
-      <div class="task-topline"><span class="priority priority-${task.priority}">${priorityLabels[task.priority]}</span>
+    return `<article class="task-card" draggable="true" tabindex="0" data-task-id="${escapeHtml(task.id)}" data-status="${task.status}" aria-label="Task: ${escapeHtml(task.title)}. ${priorityLabels[task.priority]} priority. ${statusLabels[task.status]}${isFirstUp ? ". First up in this column" : ""}.">
+      <div class="task-topline"><span class="priority-cluster"><span class="priority priority-${task.priority}">${priorityLabels[task.priority]}</span>${firstUp}</span>
         <div class="card-menu"><button type="button" aria-label="Actions for ${escapeHtml(task.title)}" aria-expanded="false">···</button>
           <div class="card-actions" hidden><button type="button" data-action="edit">Edit task</button><button type="button" data-action="move">Move task</button><button type="button" data-action="delete" class="delete-action">Delete task</button></div>
         </div>
@@ -154,9 +155,11 @@
     const shown = visibleTasks();
     for (const status of statuses) {
       const list = $(`[data-list="${status}"]`);
-      const group = shown.filter((task) => task.status === status);
+      const group = shown.filter((task) => task.status === status)
+        .sort((a, b) => Number(b.priority === "high") - Number(a.priority === "high"));
+      const firstHighIndex = group.findIndex((task) => task.priority === "high");
       list.innerHTML = group.length
-        ? group.map(renderCard).join("")
+        ? group.map((task, index) => renderCard(task, index === firstHighIndex)).join("")
         : `<div class="empty-state ${searchInput.value || priorityFilter.value !== "all" ? "filtered" : ""}"><strong>${searchInput.value || priorityFilter.value !== "all" ? "No matching tasks" : "A clear space to start"}</strong><span>${searchInput.value || priorityFilter.value !== "all" ? "Try a different search or filter." : "Add a task when you're ready."}</span></div>`;
       $(`[data-count="${status}"]`).textContent = tasks.filter((task) => task.status === status).length;
     }

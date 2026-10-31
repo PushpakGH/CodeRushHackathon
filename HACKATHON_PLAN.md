@@ -13,7 +13,7 @@
 - **Problem:** task ownership and progress are hard to scan when work lives in informal notes.
 - **Primary journey:** open the board → create or edit a task → move it among To Do, In Progress, and Completed → refresh and see the same board.
 - **Demo moment:** drag a task into Completed; its count and saved state update immediately. The status control also supports non-drag and keyboard use.
-- **P0:** title, description, priority, due date; three status columns; create, edit, delete, move; local persistence; responsive/accessibility basics.
+- **P0:** title, description, priority, due date; three status columns; create, edit, delete, move; high priority tasks sort first in each column; local persistence; responsive/accessibility basics.
 - **P1:** search and priority filters, concise summary counts, due-date cues, and a persisted light/dark appearance toggle.
 - **P2 / out of scope:** accounts, shared real-time team data, server/database, comments, notifications, integrations, analytics, role management, and final-round AWS infrastructure.
 - **Assumptions:** one browser/device per board for this round; sample starter tasks are synthetic and editable; local browser storage is acceptable because the challenge asks for refresh persistence, not cross-device sync.
@@ -42,6 +42,7 @@
 - [VERIFIED] A task can be edited and deleted; temporary QA data was removed after checking.
 - [VERIFIED] Board data persisted after a page refresh in the same browser.
 - [VERIFIED] Theme toggle switches between light and dark, saves the selection, and restores it after refresh; the dark board and task dialog were visually inspected.
+- [VERIFIED] High priority tasks sort ahead of medium/low priority tasks in each column; a newly created medium task was confirmed below the existing high task. The first high priority task is tagged "First up".
 - [NOT TESTED] Drag-and-drop movement and search/priority filtering were not exercised in the browser.
 - [NOT TESTED] Desktop UI was inspected, but phone and tablet layouts were not visually inspected.
 - [VERIFIED] Staged diff reviewed on the Round 1 branch; no secrets or generated build output are included.

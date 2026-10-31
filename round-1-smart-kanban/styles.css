@@ -123,11 +123,13 @@ kbd { border: 1px solid rgb(255 255 255 / 28%); border-radius: 4px; padding: 1px
 .task-card[draggable="true"]:focus-visible { outline-offset: 1px; }
 .task-card.is-dragging { opacity: .48; transform: rotate(1deg); }
 .task-topline { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.priority-cluster { min-width: 0; display: inline-flex; align-items: center; gap: 7px; }
 .priority { display: inline-flex; align-items: center; gap: 5px; font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .priority::before { width: 6px; height: 6px; border-radius: 50%; content: ""; background: currentColor; }
 .priority-high { color: var(--rose); }
 .priority-medium { color: var(--amber); }
 .priority-low { color: #637c6e; }
+.spotlight-tag { padding: 3px 6px; border-radius: 5px; background: var(--accent-soft); color: var(--accent-text); font-size: 8px; font-weight: 700; letter-spacing: .04em; line-height: 1.2; text-transform: uppercase; white-space: nowrap; }
 .card-menu { position: relative; }
 .card-menu > button { width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: #929c95; font-size: 18px; line-height: 1; cursor: pointer; }
 .card-menu > button:hover { background: #f0f3f0; color: var(--ink); }
