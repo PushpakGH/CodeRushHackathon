@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#111716" />
+    <meta name="description" content="VibeCrew keeps distributed engineering teams aligned around one accepted plan and task-specific agent context." />
+    <title>VibeCrew — Engineering, in sync</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="./supabase-config.js" defer></script>
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <section class="auth-screen" id="auth-screen" aria-labelledby="auth-title">
+      <div class="auth-brand"><span class="brand-mark" aria-hidden="true">v</span><strong>vibecrew</strong><span>TEAM ENGINEERING SPACE</span></div>
+      <section class="auth-card" id="signin-panel">
+        <div class="eyebrow"><span class="eyebrow-line"></span> ONE SHARED SOURCE OF TRUTH</div>
+        <h1 id="auth-title">Bring your team <em>into sync.</em></h1>
+        <p class="lede">Sign in with a one-time email link. Your workspace data is stored in Supabase and scoped to its members.</p>
+        <form id="email-auth-form" class="auth-form">
+          <label class="field-label" for="auth-name">Your name</label><input class="form-control" id="auth-name" name="display_name" maxlength="48" autocomplete="name" placeholder="e.g. Jordan Reyes" required />
+          <label class="field-label" for="auth-email">Work email</label><input class="form-control" id="auth-email" name="email" type="email" maxlength="254" autocomplete="email" placeholder="you@example.com" required />
+          <button class="button button-primary full-button" type="submit">Email me a sign-in link <span aria-hidden="true">↗</span></button>
+        </form>
+        <p id="auth-message" class="auth-message" role="status" aria-live="polite"></p>
+        <button class="text-button auth-preview-button" type="button" data-action="enter-preview">Explore the local sample preview</button>
+        <p class="auth-footnote">If the email does not arrive, the project owner may need to configure Supabase email delivery and redirect URLs.</p>
+      </section>
+      <section class="auth-card" id="workspace-panel" hidden>
+        <div class="eyebrow"><span class="eyebrow-line"></span> YOUR TEAM SPACE</div>
+        <h1>Start with a <em>workspace.</em></h1>
+        <p class="lede">Create a new team space or join with an invitation link. Membership is checked by the database on every read and write.</p>
+        <div id="existing-workspaces" class="workspace-options" hidden></div>
+        <form id="create-workspace-form" class="auth-form">
+          <h2>Create a workspace</h2>
+          <label class="field-label" for="workspace-display-name">Your display name</label><input class="form-control" id="workspace-display-name" name="display_name" maxlength="48" required />
+          <label class="field-label" for="workspace-name-input">Team name</label><input class="form-control" id="workspace-name-input" name="workspace_name" maxlength="80" required placeholder="e.g. Morrow Studio" />
+          <label class="field-label" for="project-name-input">Project name</label><input class="form-control" id="project-name-input" name="project_name" maxlength="80" required placeholder="e.g. Orbit onboarding" />
+          <label class="field-label" for="project-objective-input">Project objective <small>optional</small></label><textarea class="form-control" id="project-objective-input" name="objective" maxlength="2000" rows="3" placeholder="What is your team building, and for whom?"></textarea>
+          <button class="button button-primary full-button" type="submit">Create shared workspace</button>
+        </form>
+        <form id="join-workspace-form" class="auth-form join-form">
+          <h2>Join with an invitation</h2>
+          <label class="field-label" for="join-display-name">Your display name</label><input class="form-control" id="join-display-name" name="display_name" maxlength="48" required />
+          <label class="field-label" for="join-token-input">Invitation code</label><input class="form-control mono-input" id="join-token-input" name="invite_token" maxlength="64" autocomplete="off" placeholder="Paste a team invitation code" required />
+          <button class="button button-outline full-button" type="submit">Join workspace</button>
+        </form>
+        <p id="workspace-message" class="auth-message" role="status" aria-live="polite"></p>
+        <button class="text-button" type="button" data-action="sign-out">Sign out</button>
+      </section>
+      <p class="auth-security-note">Browser config uses a public publishable key only. Workspace access is enforced by Supabase Row Level Security.</p>
+    </section>
+    <div class="app-shell" id="app-shell" hidden>
+      <aside class="sidebar" aria-label="Workspace navigation">
+        <a class="brand" href="#overview" data-route="overview" aria-label="VibeCrew overview">
+          <span class="brand-mark" aria-hidden="true">v</span>
+          <span><strong>vibecrew</strong><small>TEAM WORKSPACE</small></span>
+        </a>
+
+        <div class="workspace-switcher">
+          <span class="workspace-avatar" aria-hidden="true">M</span>
+          <span class="workspace-name"><small>WORKSPACE</small><strong id="workspace-name-label">Morrow Studio</strong></span>
+          <span class="chevron" aria-hidden="true">⌄</span>
+        </div>
+
+        <nav class="primary-nav" aria-label="Project sections">
+          <p class="nav-label">PROJECT</p>
+          <button class="nav-item is-active" data-route="overview" aria-current="page" aria-label="Overview"><span class="nav-icon">⌂</span><span>Overview</span><kbd>1</kbd></button>
+          <button class="nav-item" data-route="discovery" aria-label="Discovery"><span class="nav-icon">◉</span><span>Discovery</span><span class="nav-status status-done" aria-label="Accepted">✓</span></button>
+          <button class="nav-item" data-route="decisions" aria-label="Decisions"><span class="nav-icon">⌘</span><span>Decisions</span><span class="nav-count">3</span></button>
+          <button class="nav-item" data-route="tasks" aria-label="Work queue"><span class="nav-icon">▤</span><span>Work queue</span><span class="nav-count" id="nav-task-count">6</span></button>
+          <button class="nav-item" data-route="context" aria-label="Agent context"><span class="nav-icon">⌁</span><span>Agent context</span></button>
+          <button class="nav-item" data-route="team" aria-label="Team and activity"><span class="nav-icon">♙</span><span>Team & activity</span></button>
+          <button class="nav-item" data-route="release" aria-label="Integration and release"><span class="nav-icon">◷</span><span>Integration & release</span></button>
+        </nav>
+
+        <div class="sidebar-project">
+          <p class="nav-label">CURRENT PROJECT</p>
+          <div class="project-mini"><span class="project-dot"></span><span><strong id="project-name-label">Orbit onboarding</strong><small><span id="project-stage-label">Implementation</span> · <span data-project-revision>r07</span></small></span></div>
+        </div>
+
+        <div class="sidebar-bottom">
+          <button class="sidebar-help" type="button" data-action="show-connection"><span aria-hidden="true">?</span> Connection & security</button>
+          <div class="profile-row">
+            <span class="avatar avatar-user" aria-hidden="true">JR</span>
+            <span class="profile-copy"><strong id="profile-name">Jordan Reyes</strong><small id="profile-role">OWNER · PREVIEW USER</small></span>
+            <span class="online-dot" aria-label="Preview session"></span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="app-main">
+        <header class="topbar">
+          <div class="mobile-brand"><span class="brand-mark" aria-hidden="true">v</span><strong>vibecrew</strong></div>
+          <div class="breadcrumbs"><span id="breadcrumb-workspace">Morrow Studio</span><span class="crumb-slash">/</span><strong id="breadcrumb-project">Orbit onboarding</strong></div>
+          <div class="topbar-actions">
+            <span class="preview-chip" id="connection-chip"><span></span> PREVIEW DATA</span>
+            <button class="icon-button theme-toggle" type="button" aria-label="Switch to light theme" title="Switch theme"><span aria-hidden="true">☼</span></button>
+            <button class="button button-subtle invite-button" type="button" data-action="create-invite"><span aria-hidden="true">＋</span> Invite teammate</button>
+            <button class="avatar avatar-user top-avatar" type="button" data-action="sign-out" aria-label="Sign out Jordan Reyes">JR</button>
+          </div>
+        </header>
+
+        <div class="preview-notice" id="connection-notice" role="status">
+          <span class="notice-icon" aria-hidden="true">i</span>
+          <p id="connection-notice-copy"><strong>Preview session.</strong> Sample workspace data is synthetic; edits reset when you reload. Shared accounts, invitations, and sync need a connected hosted backend.</p>
+          <button type="button" class="notice-action" data-action="show-connection">Setup details <span aria-hidden="true">↗</span></button>
+        </div>
+
+        <main id="main-content" tabindex="-1">
+          <section class="view is-visible" data-view="overview" aria-labelledby="overview-title">
+            <div class="page-head overview-head">
+              <div>
+                <div class="eyebrow"><span class="eyebrow-line"></span> ENGINEERING WORKSPACE <span class="eyebrow-dot">·</span> <span id="project-data-label">SYNTHETIC DEMO</span></div>
+                <h1 id="overview-title">Engineering, <em>in sync.</em></h1>
+                <p class="lede" id="project-objective-label">One accepted plan for the people and agents building Orbit together.</p>
+              </div>
+              <div class="head-actions">
+                <button class="button button-quiet" type="button" data-route="context"><span aria-hidden="true">↗</span> Open context pack</button>
+                <button class="button button-primary" type="button" data-action="new-task"><span aria-hidden="true">＋</span> New task</button>
+              </div>
+            </div>
+
+            <div class="project-title-row">
+              <div class="project-title"><span class="orbit-mark" aria-hidden="true"><i></i><i></i><i></i></span><div><h2>Orbit onboarding</h2><p>Developer setup, from first clone to first green check.</p></div></div>
+              <div class="project-meta"><span class="meta-label">CURRENT PHASE</span><span class="phase-pill"><span></span> IMPLEMENTATION</span><span class="meta-separator"></span><span class="meta-label">CONTEXT</span><span class="revision-tag" data-project-revision>r07</span></div>
+            </div>
+
+            <div class="phase-track" aria-label="Project lifecycle: Discovery accepted, Design accepted, Ready accepted, Implementation in progress, Integration upcoming, Release upcoming">
+              <div class="phase-step is-complete"><span class="phase-node">✓</span><span><small>01</small><strong>Discovery</strong></span></div>
+              <span class="phase-connector is-complete"></span>
+              <div class="phase-step is-complete"><span class="phase-node">✓</span><span><small>02</small><strong>Design</strong></span></div>
+              <span class="phase-connector is-complete"></span>
+              <div class="phase-step is-complete"><span class="phase-node">✓</span><span><small>03</small><strong>Ready</strong></span></div>
+              <span class="phase-connector is-active"></span>
+              <div class="phase-step is-current"><span class="phase-node">04</span><span><small>NOW</small><strong>Implementation</strong></span></div>
+              <span class="phase-connector"></span>
+              <div class="phase-step"><span class="phase-node">05</span><span><small>UP NEXT</small><strong>Integration</strong></span></div>
+              <span class="phase-connector"></span>
+              <div class="phase-step"><span class="phase-node">06</span><span><small>THEN</small><strong>Release</strong></span></div>
+            </div>
+
+            <div class="signal-grid" aria-label="Project coordination signals">
+              <article class="signal-card signal-main"><div class="signal-label">ACTIVE WORK <span class="signal-glyph">↗</span></div><strong id="signal-active">04 <small>/ 06</small></strong><p>tasks in motion</p><div class="signal-rule"><span style="width:66%"></span></div></article>
+              <article class="signal-card"><div class="signal-label">SCOPE CHECK <span class="signal-glyph alert-glyph">!</span></div><strong class="signal-number" id="signal-overlaps">01</strong><p>advisory overlap</p><button class="inline-link" type="button" data-route="tasks">Review paths <span aria-hidden="true">→</span></button></article>
+              <article class="signal-card"><div class="signal-label">CONTEXT SYNC <span class="signal-glyph">⌁</span></div><strong class="signal-number">02 <small class="muted-number">/ 04</small></strong><p>task packs need refresh</p><button class="inline-link" type="button" data-route="context">See contributors <span aria-hidden="true">→</span></button></article>
+              <article class="signal-card signal-sync"><div class="signal-label">LAST CHECK <span class="signal-glyph">◷</span></div><strong class="signal-word">Preview</strong><p>local session only</p><span class="sync-subtext">No server connection</span></article>
+            </div>
+
+            <div class="content-grid overview-grid">
+              <section class="panel work-panel" aria-labelledby="work-title">
+                <div class="panel-heading"><div><div class="eyebrow eyebrow-small">DELIVERY</div><h2 id="work-title">Work in motion</h2></div><button class="text-button" type="button" data-route="tasks">All tasks <span aria-hidden="true">→</span></button></div>
+                <div class="task-list" id="overview-task-list"></div>
+                <div class="panel-foot"><span class="demo-footnote"><span class="tiny-dot"></span> EXAMPLE TASK DATA</span><button class="text-button" type="button" data-action="new-task">Add to the queue <span aria-hidden="true">＋</span></button></div>
+              </section>
+
+              <div class="right-stack">
+                <section class="panel context-panel" aria-labelledby="sync-title">
+                  <div class="panel-heading"><div><div class="eyebrow eyebrow-small">SHARED CONTEXT <span class="mini-revision" data-project-revision>r07</span></div><h2 id="sync-title">Context sync</h2></div><span class="context-symbol" aria-hidden="true">⌁</span></div>
+                  <p class="panel-description">Each task pack is generated from the accepted project revision, then carried to a local coding agent.</p>
+                  <div class="sync-list" id="context-sync-list"></div>
+                  <button class="button button-outline full-button" type="button" data-route="context">Preview an agent pack <span aria-hidden="true">↗</span></button>
+                </section>
+
+                <section class="panel brief-panel" aria-labelledby="brief-title">
+                  <div class="brief-heading"><span class="brief-icon" aria-hidden="true">✳</span><div><div class="eyebrow eyebrow-small">ACCEPTED BRIEF</div><h2 id="brief-title">The problem we agreed on</h2></div></div>
+                  <blockquote>“New contributors lose half a day stitching setup notes from chat, old docs, and stale screenshots.”</blockquote>
+                  <div class="brief-footer"><span>Owner-approved · revision 03</span><button class="text-button" type="button" data-route="discovery">Read brief <span aria-hidden="true">→</span></button></div>
+                </section>
+              </div>
+            </div>
+
+            <section class="panel activity-panel" aria-labelledby="activity-title">
+              <div class="panel-heading"><div><div class="eyebrow eyebrow-small">TEAM SIGNAL</div><h2 id="activity-title">Recent activity</h2></div><button class="text-button" type="button" data-route="team">Activity log <span aria-hidden="true">→</span></button></div>
+              <div class="activity-list" id="overview-activity-list"></div>
+            </section>
+          </section>
+
+          <section class="view" data-view="discovery" aria-labelledby="discovery-title" hidden>
+            <div class="page-head"><div><div class="eyebrow"><span class="eyebrow-line"></span> GATE 01 · ACCEPTED BRIEF</div><h1 id="discovery-title">Start with <em>the why.</em></h1><p class="lede">An agreed problem and clear boundaries keep four local agents solving the same thing.</p></div><span class="gate-status"><span>✓</span> ACCEPTED · REV 03</span></div>
+            <div class="discovery-layout">
+              <article class="panel discovery-main"><div class="eyebrow eyebrow-small">PROBLEM STATEMENT</div><h2>First-day setup is tribal knowledge.</h2><p class="large-copy">New engineers join an unfamiliar repository and piece together environment setup, architecture decisions, and the first task from scattered chat threads and aging documents.</p><div class="quote-block"><span>THE CURRENT WORKAROUND</span><p>Ask in chat, copy snippets into local notes, and hope the answer matches the current branch.</p></div><div class="split-facts"><div><span class="eyebrow eyebrow-small">TARGET USERS</span><p>Distributed product teams with 3–8 contributors using different AI coding agents.</p></div><div><span class="eyebrow eyebrow-small">USER PAIN</span><p>Repeated onboarding, conflicting assumptions, duplicate work, and risky integration surprises.</p></div></div></article>
+              <aside class="discovery-side"><article class="panel objective-card"><div class="eyebrow eyebrow-small">DEMO OUTCOME</div><h3>From accepted plan to one focused first task.</h3><p>A new teammate joins, claims an unowned task, and hands their local agent an up-to-date context pack.</p><span class="outcome-stamp">MEASURABLE · ONE TASK CLAIMED WITHOUT DUPLICATION</span></article><article class="panel"><div class="eyebrow eyebrow-small">PRODUCT SCOPE</div><div class="scope-row"><span class="scope-marker scope-p0">P0</span><p>Shared workspace, approved brief and decisions, safe task claiming, scoped work, context packs, integration checklist.</p></div><div class="scope-row"><span class="scope-marker scope-p1">P1</span><p>Realtime updates, GitHub OAuth, read-only MCP tools, advanced reporting.</p></div><div class="scope-row"><span class="scope-marker scope-p2">P2</span><p>IDE extensions, remote agent execution, auto-merge, chat/video, AI-generated architecture.</p></div></article></aside>
+              <article class="panel journey-panel"><div class="panel-heading"><div><div class="eyebrow eyebrow-small">PRIMARY JOURNEY</div><h2>One path through the product</h2></div><span class="journey-caption">OWNER → CONTRIBUTOR → REVIEWER</span></div><ol class="journey-list"><li><span>01</span><div><strong>Agree the problem</strong><p>Lead publishes the brief and the team accepts the measurable outcome.</p></div></li><li><span>02</span><div><strong>Approve the boundaries</strong><p>Decisions define the data model, trust boundaries, and integration shape.</p></div></li><li><span>03</span><div><strong>Claim a safe slice</strong><p>A member claims one task; overlapping paths surface as advisory warnings.</p></div></li><li><span>04</span><div><strong>Build with current context</strong><p>Contributor exports a task-specific pack to their local agent and returns with evidence.</p></div></li><li><span>05</span><div><strong>Review, integrate, release</strong><p>Human review and checks remain in GitHub; VibeCrew tracks readiness and handover.</p></div></li></ol></article>
+              <article class="panel acceptance-panel"><div class="eyebrow eyebrow-small">OBSERVABLE ACCEPTANCE</div><div class="acceptance-grid"><p><span>✓</span> Two signed-in members see the same accepted project data.</p><p><span>✓</span> Simultaneous task claims cannot both succeed.</p><p><span>✓</span> An accepted decision increments context revision.</p><p><span>✓</span> A stale task context is called out before implementation.</p></div><p class="acceptance-note">These are target criteria from the brief; they are not verified in this preview.</p></article>
+            </div>
+          </section>
+
+          <section class="view" data-view="decisions" aria-labelledby="decisions-title" hidden>
+            <div class="page-head"><div><div class="eyebrow"><span class="eyebrow-line"></span> GATE 02 · DESIGN REGISTER</div><h1 id="decisions-title">Decisions that <em>travel.</em></h1><p class="lede">Accepted constraints stay visible in every contributor’s next context pack.</p></div><button class="button button-primary" type="button" data-action="new-decision"><span aria-hidden="true">＋</span> Propose decision</button></div>
+            <div class="decision-summary"><span class="decision-count">03</span><p><strong>Three decisions recorded</strong><br><span>Two accepted · one proposed · synthetic preview data</span></p><span class="revision-pill">CURRENT CONTEXT <b data-project-revision>r07</b></span></div>
+            <div class="decision-list" id="decision-list"></div>
+            <div class="notice-inline"><span aria-hidden="true">i</span><p>In shared workspaces, owners and leads can accept proposals; acceptance advances the shared context revision. In sample preview, edits are temporary.</p></div>
+          </section>
+
+          <section class="view" data-view="tasks" aria-labelledby="tasks-title" hidden>
+            <div class="page-head"><div><div class="eyebrow"><span class="eyebrow-line"></span> GATE 03–04 · DELIVERY QUEUE</div><h1 id="tasks-title">Small slices. <em>Clear owners.</em></h1><p class="lede">Tasks carry dependencies, acceptance, test intent, branch suggestions, and declared file scope.</p></div><button class="button button-primary" type="button" data-action="new-task"><span aria-hidden="true">＋</span> Create task</button></div>
+            <div class="task-toolbar"><div class="task-filter-tabs" role="group" aria-label="Filter tasks"><button class="filter-button is-selected" data-filter="all">All work <span id="filter-count-all">6</span></button><button class="filter-button" data-filter="attention">Needs attention <span id="filter-count-attention">2</span></button></div><label class="search-field"><span aria-hidden="true">⌕</span><span class="sr-only">Search tasks</span><input id="task-search" type="search" placeholder="Find a task or path…" /></label></div>
+            <div class="scope-warning" id="scope-warning"><span class="warning-mark" aria-hidden="true">!</span><div><strong id="scope-warning-title">Potential file-scope overlap</strong><p id="scope-warning-detail">Active task scopes overlap. Coordinate ownership before editing; this advisory is not a Git conflict.</p></div><button class="warning-close" type="button" aria-label="Dismiss overlap notice">×</button></div>
+            <div class="board-columns" id="task-board"></div>
+            <div class="board-footnote"><span>PATH MATCHING IS ADVISORY</span><p>Exact paths and parent/child directory prefixes are compared after normalizing slashes. Wildcard patterns are not expanded here.</p></div>
+          </section>
+
+          <section class="view" data-view="context" aria-labelledby="context-title" hidden>
+            <div class="page-head"><div><div class="eyebrow"><span class="eyebrow-line"></span> AGENT-AGNOSTIC · MARKDOWN EXPORT</div><h1 id="context-title">Give every agent <em>the same start.</em></h1><p class="lede">Generate a focused snapshot from the accepted plan. Your local agent still runs on your own machine.</p></div><span class="revision-pill">PROJECT REVISION <b data-project-revision>r07</b></span></div>
+            <div class="context-layout"><aside class="panel context-controls"><div class="eyebrow eyebrow-small">PACK CONFIGURATION</div><label class="field-label" for="context-task-select">Include task assignment</label><select id="context-task-select" class="form-control"></select><div class="context-option"><span class="check-square" aria-hidden="true">✓</span><span><strong>Accepted decisions</strong><small>ADR-001 · ADR-002</small></span></div><div class="context-option"><span class="check-square" aria-hidden="true">✓</span><span><strong>Architecture and API rules</strong><small>Current accepted revision</small></span></div><div class="context-option"><span class="check-square" aria-hidden="true">✓</span><span><strong>Task scope and checks</strong><small>Owner · dependencies · paths · tests</small></span></div><button class="button button-primary full-button" type="button" data-action="generate-context">Refresh this snapshot <span aria-hidden="true">↻</span></button><p class="context-control-note">Generated locally from synthetic preview content. It is not fetched from a shared server.</p></aside><div class="context-preview-panel"><div class="preview-heading"><div><span class="preview-live-dot"></span><strong>VIBECREW_CONTEXT.md</strong><span class="preview-size">MARKDOWN</span></div><div class="preview-actions"><button class="button button-quiet button-small" type="button" data-action="copy-context">Copy</button><button class="button button-primary button-small" type="button" data-action="download-context">Download .md</button></div></div><div class="stale-banner" id="context-stale-banner" hidden><span aria-hidden="true">!</span><p><strong>Snapshot may be stale.</strong> The selected task last saw an earlier context revision. Refresh before using it.</p></div><pre class="markdown-preview" id="context-preview" tabindex="0" aria-label="Generated Markdown context pack"></pre><div class="context-preview-foot"><span>SNAPSHOT REVISION <b>r07</b></span><span>GENERATED IN THIS BROWSER SESSION</span></div></div></div>
+          </section>
+
+          <section class="view" data-view="team" aria-labelledby="team-title" hidden>
+            <div class="page-head"><div><div class="eyebrow"><span class="eyebrow-line"></span> COLLABORATION · SYNTHETIC MEMBERS</div><h1 id="team-title">A team across <em>machines.</em></h1><p class="lede">VibeCrew coordinates the plan; each contributor’s IDE and agent remain local.</p></div><button class="button button-outline" type="button" data-action="show-connection">Invite requires backend</button></div>
+            <div class="team-header-band"><div><span class="eyebrow eyebrow-small">WORKSPACE MEMBERS</span><strong>04 <small>preview identities</small></strong></div><p>Member roles are examples. No authentication or invitations are enabled yet.</p><span class="preview-chip"><span></span> NOT CONNECTED</span></div>
+            <div class="member-table" id="member-list"></div>
+            <section class="panel team-activity"><div class="panel-heading"><div><div class="eyebrow eyebrow-small">AUDIT TRAIL · SAMPLE EVENTS</div><h2>Latest project activity</h2></div><span class="activity-note">Not live or cross-device</span></div><div class="activity-list activity-list-wide" id="team-activity-list"></div></section>
+            <div class="role-note"><div class="eyebrow eyebrow-small">ROLE BOUNDARIES — TARGET DESIGN</div><p><b>OWNER</b> manages workspace and gates · <b>LEAD</b> owns brief, decisions, planning · <b>MEMBER</b> claims and updates work · <b>REVIEWER</b> records review evidence. The backend must enforce these rules on every protected operation.</p></div>
+          </section>
+
+          <section class="view" data-view="release" aria-labelledby="release-title" hidden>
+            <div class="page-head"><div><div class="eyebrow"><span class="eyebrow-line"></span> GATES 05–06 · INTEGRATION & RELEASE</div><h1 id="release-title">Ship with <em>receipts.</em></h1><p class="lede">Track branch, review, CI, merge, and the final demo handoff. GitHub remains the source of truth for code.</p></div><span class="gate-status gate-muted"><span>◷</span> NOT STARTED</span></div>
+            <div class="release-grid"><section class="panel release-checklist"><div class="panel-heading"><div><div class="eyebrow eyebrow-small">RELEASE CHECKLIST</div><h2>What must be true</h2></div><span class="not-tested-tag">0 VERIFIED</span></div><div class="release-items" id="release-items"></div></section><aside class="release-side"><section class="panel integration-panel"><div class="eyebrow eyebrow-small">CODE INTEGRATION</div><h2>Metadata only</h2><p>Record evidence here; open and merge pull requests in GitHub after normal review.</p><label class="field-label" for="branch-input">Branch</label><input class="form-control" id="branch-input" value="feat/VBC-014-bootstrap-check" disabled /><label class="field-label" for="pr-input">Pull request URL</label><input class="form-control" id="pr-input" placeholder="https://github.com/…" disabled /><div class="integration-meta"><span>CI <b>UNKNOWN</b></span><span>REVIEW <b>NOT REQUESTED</b></span><span>MERGE <b>NOT OPENED</b></span></div><p class="disabled-note">Inputs stay disabled in this preview. No GitHub writes are connected.</p></section><section class="panel handoff-panel"><div class="eyebrow eyebrow-small">DEMO HANDOFF</div><h2>Two minutes, one story.</h2><ol><li>Show the accepted brief and design decision.</li><li>Claim a small task and point out the path warning.</li><li>Export the task context to a local coding agent.</li><li>Return with a PR link, review evidence, and release status.</li></ol><button class="text-button" type="button" data-route="context">Open the context demo <span aria-hidden="true">→</span></button></section></aside></div>
+          </section>
+        </main>
+        <footer class="app-footer"><span>VIBECREW · ENGINEERING CONTEXT, SHARED</span><span>LOCAL UI PREVIEW · CROSS-DEVICE WORKFLOWS NOT ENABLED</span></footer>
+      </div>
+    </div>
+
+    <dialog class="modal" id="task-dialog" aria-labelledby="task-dialog-title">
+      <form id="task-form" method="dialog" novalidate>
+        <div class="modal-head"><div><div class="eyebrow eyebrow-small">TASK DECOMPOSITION</div><h2 id="task-dialog-title">Create a task</h2></div><button class="icon-button modal-close" type="button" aria-label="Close dialog">×</button></div>
+        <p class="modal-subtitle" id="task-modal-subtitle">Add a small, reviewable slice to the shared project queue.</p>
+        <label class="field-label" for="task-title-input">Task title <span>*</span></label><input class="form-control" id="task-title-input" name="title" maxlength="90" required placeholder="e.g. Add first-run environment check" />
+        <label class="field-label" for="task-description-input">Objective</label><textarea class="form-control" id="task-description-input" name="description" maxlength="320" rows="3" placeholder="What should change, and why?"></textarea>
+        <div class="form-row"><div><label class="field-label" for="task-owner-input">Owner</label><select class="form-control" id="task-owner-input" name="owner"><option value="">Unassigned</option></select></div><div><label class="field-label" for="task-priority-input">Priority</label><select class="form-control" id="task-priority-input" name="priority"><option value="P0">P0 · Critical</option><option value="P1" selected>P1 · High</option><option value="P2">P2 · Normal</option></select></div></div>
+        <label class="field-label" for="task-scope-input">Declared file paths <small>one per line</small></label><textarea class="form-control mono-input" id="task-scope-input" name="scope" maxlength="240" rows="2" placeholder="src/setup/checks.ts"></textarea>
+        <label class="field-label" for="task-acceptance-input">Acceptance criteria <small>optional</small></label><textarea class="form-control" id="task-acceptance-input" name="acceptance" maxlength="2000" rows="2" placeholder="What observable result means this is done?"></textarea>
+        <label class="field-label" for="task-test-plan-input">Expected checks <small>optional</small></label><textarea class="form-control" id="task-test-plan-input" name="test_plan" maxlength="2000" rows="2" placeholder="What should the contributor verify?"></textarea>
+        <p class="form-error" id="task-form-error" role="alert" hidden></p>
+        <div class="modal-actions"><button class="button button-quiet" type="button" data-action="close-task">Cancel</button><button class="button button-primary" type="submit">Add task</button></div>
+      </form>
+    </dialog>
+    <dialog class="modal connection-modal" id="connection-dialog" aria-labelledby="connection-dialog-title">
+      <div class="modal-head"><div><div class="eyebrow eyebrow-small">BACKEND & ACCESS</div><h2 id="connection-dialog-title">Your shared source of truth.</h2></div><button class="icon-button connection-close" type="button" aria-label="Close dialog">×</button></div>
+      <p class="connection-copy" id="connection-dialog-copy">This local sample preview keeps edits in memory. Sign in to create or join a hosted workspace.</p>
+      <ol class="setup-steps" id="connection-steps"><li><span>1</span><p>Sign in with your email link.</p></li><li><span>2</span><p>Create a team workspace or open an invitation link.</p></li><li><span>3</span><p>Use the shared task queue and context pack; database policies check membership on reads and writes.</p></li></ol>
+      <div class="connection-boundary"><strong>Security boundary</strong><p>The browser uses a publishable key only. Row-level security and scoped database functions enforce workspace access; no service-role key is shipped.</p></div>
+      <div class="modal-actions"><button class="button button-primary connection-close" type="button">Got it</button></div>
+    </dialog>
+    <dialog class="modal invite-modal" id="invite-dialog" aria-labelledby="invite-dialog-title">
+      <div class="modal-head"><div><div class="eyebrow eyebrow-small">SHARE A TEAM WORKSPACE</div><h2 id="invite-dialog-title">Invite a teammate.</h2></div><button class="icon-button invite-close" type="button" aria-label="Close dialog">×</button></div>
+      <p class="modal-subtitle">Invitation links are bearer links. Anyone with the link can join; it expires in seven days and allows up to ten uses.</p>
+      <label class="field-label" for="invite-role-input">Join role</label><select class="form-control" id="invite-role-input"><option value="member">Member</option><option value="reviewer">Reviewer</option></select>
+      <button class="button button-primary full-button" type="button" data-action="generate-invite">Create invitation link</button>
+      <label class="field-label" for="invite-url-output">Invitation link <small>shown once</small></label><input class="form-control mono-input" id="invite-url-output" readonly placeholder="Create a link to share" />
+      <div class="modal-actions"><button class="button button-outline" id="invite-copy-button" type="button" data-action="copy-invite" disabled>Copy link</button><button class="button button-quiet invite-close" type="button">Done</button></div>
+      <p id="invite-message" class="auth-message" role="status" aria-live="polite"></p>
+    </dialog>
+    <dialog class="modal decision-modal" id="decision-dialog" aria-labelledby="decision-dialog-title">
+      <form id="decision-form" method="dialog" novalidate>
+        <div class="modal-head"><div><div class="eyebrow eyebrow-small">ARCHITECTURE DECISION</div><h2 id="decision-dialog-title">Propose a decision.</h2></div><button class="icon-button decision-close" type="button" aria-label="Close dialog">×</button></div>
+        <label class="field-label" for="decision-title-input">Decision title <span>*</span></label><input class="form-control" id="decision-title-input" name="title" maxlength="120" required />
+        <label class="field-label" for="decision-context-input">Context</label><textarea class="form-control" id="decision-context-input" name="context" maxlength="2000" rows="2" placeholder="What prompted this decision?"></textarea>
+        <label class="field-label" for="decision-body-input">Decision <span>*</span></label><textarea class="form-control" id="decision-body-input" name="decision" maxlength="4000" rows="3" required placeholder="What are we choosing?"></textarea>
+        <label class="field-label" for="decision-consequence-input">Consequences</label><textarea class="form-control" id="decision-consequence-input" name="consequence" maxlength="2000" rows="2" placeholder="What trade-off should future contributors know?"></textarea>
+        <p id="decision-form-error" class="form-error" role="alert" hidden></p>
+        <div class="modal-actions"><button class="button button-quiet decision-close" type="button">Cancel</button><button class="button button-primary" type="submit">Save proposal</button></div>
+      </form>
+    </dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
