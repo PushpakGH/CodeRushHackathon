@@ -73,11 +73,11 @@
           <form id="bid-form" novalidate>
             <label class="field-label" for="bidder-name">YOUR DISPLAY NAME</label>
             <input id="bidder-name" name="bidder" type="text" maxlength="32" autocomplete="nickname" placeholder="e.g. Alex" required>
-            <label class="field-label amount-label" for="bid-amount">YOUR BID <span>MINIMUM <b id="minimum-bid">₹1,201</b></span></label>
-            <div class="amount-wrap"><span aria-hidden="true">₹</span><input id="bid-amount" name="amount" type="number" min="1201" step="0.01" inputmode="decimal" placeholder="1201" required></div>
+            <label class="field-label amount-label" for="bid-amount">YOUR BID <span>MINIMUM <b id="minimum-bid">₹1,300.00</b></span></label>
+            <div class="amount-wrap"><span aria-hidden="true">₹</span><input id="bid-amount" name="amount" type="number" min="1300" step="0.01" inputmode="decimal" placeholder="1300" required></div>
             <p class="form-message" id="form-message" aria-live="polite"></p>
             <button class="place-bid" id="place-bid" type="submit"><span>Place your bid</span><span aria-hidden="true">↗</span></button>
-            <p class="bid-note" id="bid-note">Bids are final. The highest valid bid when the timer ends wins.</p>
+            <p class="bid-note" id="bid-note">Bids are final and must be at least ₹100 above the current highest bid.</p>
           </form>
           <div class="ended-message" id="ended-message" hidden>
             <span class="ended-icon" aria-hidden="true">✦</span>

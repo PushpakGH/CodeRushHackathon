@@ -6,6 +6,7 @@
   const THEME_KEY = 'coderush-round2-theme-v1';
   const DEFAULT_DURATION_MS = 5 * 60 * 1000;
   const DEFAULT_PRICE = 120000; // integer paise: ₹1,200.00
+  const MIN_BID_INCREMENT = 10000; // ₹100.00, in paise
   const MAX_AUCTIONS = 25;
   const MAX_BIDS_PER_AUCTION = 500;
   const MAX_TITLE_LENGTH = 60;
@@ -266,15 +267,17 @@
     const durationMins = Math.round(auction.durationMs / 60_000);
     els.lotDetails.textContent = `Opening bid ${money.format(auction.startingPrice / 100)} · ${durationMins} ${durationMins === 1 ? 'minute' : 'minutes'}`;
     els.currentBid.textContent = money.format((leader?.amount ?? auction.startingPrice) / 100);
-    els.minimumBid.textContent = money.format(((leader?.amount ?? auction.startingPrice) + 1) / 100);
-    els.amount.min = ((leader?.amount ?? auction.startingPrice) + 1) / 100;
+    const minimumBid = leaderAmount(auction) + MIN_BID_INCREMENT;
+    const canRaiseBid = Number.isSafeInteger(minimumBid);
+    els.minimumBid.textContent = canRaiseBid ? money.format(minimumBid / 100) : 'Maximum reached';
+    els.amount.min = canRaiseBid ? minimumBid / 100 : '';
     els.highestBidder.textContent = leader ? `Leading bid by ${leader.name}` : 'Starting price · no bids yet';
     els.status.classList.toggle('closed', closed);
     els.status.innerHTML = `<i></i> ${closed ? 'AUCTION CLOSED' : 'LIVE AUCTION'}`;
-    els.place.disabled = closed || auction.bids.length >= MAX_BIDS_PER_AUCTION;
-    els.name.disabled = closed;
-    els.amount.disabled = closed;
-    els.note.textContent = auction.bids.length >= MAX_BIDS_PER_AUCTION ? 'This lot reached its bid limit.' : closed ? 'Bidding is closed. The result is shown below.' : 'Bids are final. The highest valid bid when the timer ends wins.';
+    els.place.disabled = closed || auction.bids.length >= MAX_BIDS_PER_AUCTION || !canRaiseBid;
+    els.name.disabled = closed || !canRaiseBid;
+    els.amount.disabled = closed || !canRaiseBid;
+    els.note.textContent = auction.bids.length >= MAX_BIDS_PER_AUCTION ? 'This lot reached its bid limit.' : !canRaiseBid ? 'The maximum safe bid has been reached for this lot.' : closed ? 'Bidding is closed. The result is shown below.' : 'Bids are final; each new bid must be at least ₹100 above the current highest bid.';
     els.ended.hidden = !closed;
     if (closed) els.winner.textContent = leader ? `${leader.name} wins with ${money.format(leader.amount / 100)}.` : 'No bids were placed. The item remains unsold.';
     renderAuctions();
@@ -325,9 +328,14 @@
       return;
     }
     const amount = parseAmount(els.amount.value);
-    const minimum = leaderAmount(auction) + 1;
+    const minimum = leaderAmount(auction) + MIN_BID_INCREMENT;
+    if (!Number.isSafeInteger(minimum)) {
+      render();
+      els.message.textContent = 'The maximum safe bid has been reached for this lot.';
+      return;
+    }
     if (amount === null || amount < minimum) {
-      els.message.textContent = `Your bid must be a valid amount of at least ${money.format(minimum / 100)}.`;
+      els.message.textContent = `Your bid must be at least ${money.format(minimum / 100)} (₹100 above the current highest bid).`;
       els.amount.focus();
       return;
     }
@@ -379,8 +387,8 @@
       els.newDescription.focus();
       return;
     }
-    if (startingPrice === null || startingPrice < 1) {
-      els.createMessage.textContent = 'Enter a positive starting price with no more than two decimal places.';
+    if (startingPrice === null || startingPrice < 1 || startingPrice > Number.MAX_SAFE_INTEGER - MIN_BID_INCREMENT) {
+      els.createMessage.textContent = 'Enter a positive starting price with no more than two decimal places, leaving room for the ₹100 minimum increment.';
       els.newPrice.focus();
       return;
     }

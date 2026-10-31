@@ -1,6 +1,6 @@
 # Round 2 — Event Auction System
 
-Standalone single-page demo for CodeRush challenge R2-01. Create up to 25 item auctions, set a positive INR starting price and a 1-minute-to-24-hour duration, then switch between lots with separate deadlines and bid histories. Valid bids must exceed the current lot's highest bid; each lot closes at its persisted deadline and shows the winner or an unsold result. Dark mode follows the device preference until changed and remembers the visitor's selection.
+Standalone single-page demo for CodeRush challenge R2-01. Create up to 25 item auctions, set a positive INR starting price and a 1-minute-to-24-hour duration, then switch between lots with separate deadlines and bid histories. Every bid must be at least ₹100 above the current highest bid (or starting price); each lot closes at its persisted deadline and shows the winner or an unsold result. Dark mode follows the device preference until changed and remembers the visitor's selection.
 
 ## Run locally
 
