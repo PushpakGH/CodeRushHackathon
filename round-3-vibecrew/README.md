@@ -120,6 +120,10 @@ Open <http://localhost:4178/> and keep the server terminal open. Stop it with `C
 
 The static deployment must include these four files together: `index.html`, `styles.css`, `app.js`, and `supabase-config.js`. The ready-to-publish copy is in `dist/`. To refresh the existing Netlify site manually, publish the contents of that folder; do not publish only `app.js` because the page also needs its stylesheet and Supabase browser config. `supabase-config.js` contains only a public publishable key; never place a service-role/secret key in browser code.
 
+### Publish or update the Netlify preview
+
+For a manual update, open the existing Netlify site dashboard, go to **Deploys**, and drop the `dist/` output folder into the manual deploy area. Netlify expects the output folder itself, with `index.html` at its root. The exact folder in this checkout is `E:\CODR\Hack\CodeRushHackathon\round-3-vibecrew\dist`. Wait for the deploy to finish, then hard-refresh the live URL. If the site is Git-connected, follow its configured deployment branch instead of assuming a manual upload changed the live site. See [Netlify's deploy guide](https://docs.netlify.com/deploy/create-deploys/) for current options.
+
 ## Common problems
 
 - **A teammate sees a workspace-creation form:** they likely opened the public site without the invitation. Ask them to open the organizer's invite URL, sign in, and choose **Join workspace**. Do not create another workspace for them.
