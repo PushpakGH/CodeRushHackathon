@@ -446,6 +446,28 @@
   }
 
   function updateWorkspaceSummary() {
+    $('.project-title h2').textContent = activeProject.name;
+    $('.project-title p').textContent = activeProject.objective || 'Add a project objective during discovery.';
+    $('.phase-pill').textContent = activeProject.lifecycle_stage;
+    const phaseTrack = $('.phase-track');
+    phaseTrack.setAttribute('aria-label', 'Current project stage: ' + activeProject.lifecycle_stage);
+    const stageIndex = { Discovery: 0, Design: 1, Implementation: 3, Release: 5 }[activeProject.lifecycle_stage];
+    phaseTrack.querySelectorAll('.phase-step').forEach((step, index) => {
+      step.classList.remove('is-complete');
+      step.classList.toggle('is-current', index === stageIndex);
+      step.querySelector('.phase-node').textContent = String(index + 1).padStart(2, '0');
+      step.querySelector('small').textContent = index === stageIndex ? 'CURRENT' : String(index + 1).padStart(2, '0');
+    });
+    phaseTrack.querySelectorAll('.phase-connector').forEach(connector => connector.classList.remove('is-complete', 'is-active'));
+    const contextSignal = $('[data-view="overview"] .signal-grid .signal-card:nth-child(3) strong');
+    contextSignal.textContent = tasks.filter(isStale).length + ' / ' + tasks.length;
+    $('.signal-sync .signal-word').textContent = 'Connected';
+    $('.signal-sync p').textContent = 'Workspace refreshed';
+    $('.signal-sync .sync-subtext').textContent = 'Every five seconds';
+    $('.brief-panel blockquote').textContent = activeProject.objective || 'No objective recorded yet.';
+    $('.brief-panel .eyebrow-small').textContent = 'PROJECT OBJECTIVE';
+    $('.brief-footer span').textContent = 'Context revision ' + activeProject.context_revision;
+    $('[data-view="overview"] .demo-footnote').textContent = 'SHARED WORKSPACE TASKS';
     const teamCount = activeMembers.length;
     const teamBand = $('.team-header-band');
     if (teamBand) {

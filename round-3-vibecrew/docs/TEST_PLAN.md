@@ -59,3 +59,9 @@ Still awaiting a real app sign-in for end-to-end invitation, browser convergence
 ## Live email delivery recovery
 
 A real app sign-in request returned HTTP 504. Supabase custom Gmail SMTP was configured on port 564. Changed the port to 587 and observed the dashboard success confirmation. A fresh request for the authorized test address succeeded and the app displayed its inbox confirmation. Inbox receipt and redemption still require the user to open the private link. No SMTP password was read or changed.
+
+## Authenticated live MCP check on 2026-11-14
+
+Signed into the deployed app through a newly delivered email link for the explicitly authorized account. The account loaded its existing workspace and project. Created an approved temporary seven-day read-only token. Two independent stdio MCP clients both listed get_project_context and get_my_tasks and read the same live project context at revision 1. Context fingerprints matched after excluding the per-request generatedAt timestamp. These were two clients of one account, rather than two different user identities.
+
+Revoked the temporary token through the app. The live MCP endpoint subsequently returned HTTP 401 for that credential. Removed its temporary local file. Existing user credentials were preserved.
