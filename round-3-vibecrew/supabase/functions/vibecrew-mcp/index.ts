@@ -77,7 +77,7 @@ function registerTools(identity: AgentIdentity) {
         const [membersResult, decisionsResult, tasksResult, checksResult, activityResult] = await Promise.all([
           admin.from("workspace_members").select("user_id, display_name, role").eq("workspace_id", identity.workspaceId),
           admin.from("architecture_decisions").select("decision_key, title, context, decision, consequence, version, created_at").eq("project_id", project.id).eq("status", "ACCEPTED").order("created_at", { ascending: true }),
-          admin.from("tasks").select("task_key, title, description, status, priority, owner_id, dependencies, acceptance, test_plan, scope, branch, pr_url, context_revision_seen, updated_at").eq("project_id", project.id).order("created_at", { ascending: true }).limit(100),
+          admin.from("tasks").select("task_key, title, description, status, priority, owner_id, dependencies, acceptance, test_plan, scope, branch, pr_url, review_evidence, submitted_by, reviewed_by, published_revision, context_revision_seen, updated_at").eq("project_id", project.id).order("created_at", { ascending: true }).limit(100),
           admin.from("release_checks").select("check_key, title, status, evidence, updated_at").eq("project_id", project.id).order("updated_at", { ascending: true }),
           admin.from("activity_events").select("event_type, summary, created_at").eq("project_id", project.id).order("created_at", { ascending: false }).limit(15),
         ]);
@@ -134,7 +134,7 @@ function registerTools(identity: AgentIdentity) {
         const projectNames = new Map(projects.map((project) => [project.id, project.name]));
         const { data: tasks, error } = await admin
           .from("tasks")
-          .select("project_id, task_key, title, description, status, priority, dependencies, acceptance, test_plan, scope, branch, pr_url, context_revision_seen, updated_at")
+          .select("project_id, task_key, title, description, status, priority, dependencies, acceptance, test_plan, scope, branch, pr_url, review_evidence, submitted_by, reviewed_by, published_revision, context_revision_seen, updated_at")
           .in("project_id", projects.map((project) => project.id))
           .eq("owner_id", identity.userId)
           .order("updated_at", { ascending: false })

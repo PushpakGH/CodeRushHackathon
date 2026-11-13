@@ -1,4 +1,3 @@
 [build]
-  # In Netlify, set the base directory to round-3-vibecrew.
-  # This plain HTML/CSS/JS app needs no build command.
-  publish = "."
+  command = "npm run build"
+  publish = "dist"

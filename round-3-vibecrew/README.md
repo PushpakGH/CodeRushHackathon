@@ -110,15 +110,16 @@ The bridge inherits the token from the IDE process environment; do not add the t
 
 ## Run the frontend locally
 
-From this folder, start a static server:
+From this folder, install the web dependencies once, then start Vite:
 
 ```powershell
-python -m http.server 4178 --bind 127.0.0.1
+npm install
+npm run dev
 ```
 
-Open <http://localhost:4178/> and keep the server terminal open. Stop it with `Ctrl+C`. No frontend build or package install is required. The Supabase browser SDK loads from jsDelivr, so hosted sign-in also needs internet access. For local email sign-in, add `http://localhost:4178/**` (and, if needed, `http://127.0.0.1:4178/**`) to the Supabase project's Auth redirect URL allowlist. The deployed Netlify origin is already allowlisted.
+Open <http://localhost:5173/> and keep the server terminal open. Stop it with `Ctrl+C`. For local email sign-in, add `http://localhost:5173/**` to the Supabase project's Auth redirect URL allowlist. The deployed Netlify origin is already allowlisted.
 
-The static deployment must include these four files together: `index.html`, `styles.css`, `app.js`, and `supabase-config.js`. The ready-to-publish copy is in `dist/`. To refresh the existing Netlify site manually, publish the contents of that folder; do not publish only `app.js` because the page also needs its stylesheet and Supabase browser config. `supabase-config.js` contains only a public publishable key; never place a service-role/secret key in browser code.
+Netlify builds the React app with `npm run build` and publishes `dist/`. `supabase-config.js` contains only the public publishable key; never put a service-role/secret key in browser code.
 
 ### Publish or update the Netlify preview
 
@@ -130,7 +131,7 @@ After the feature branch containing VibeCrew is on GitHub, connect the existing 
 
 1. In Netlify, open the site and go to **Project configuration → Build & deploy → Continuous deployment → Repository**. Choose **Link to a different repository** (or **Add new project → Import an existing project** if this is a new site) and authorize GitHub access to `PushpakGH/CodeRushHackathon`.
 2. Set the production branch to the branch you want Netlify to publish. Choose `main` after the VibeCrew changes are merged there, or choose `hackathon/round-3-vibecrew` if the preview should publish directly from that branch.
-3. Under **Build settings**, set **Base directory** to `round-3-vibecrew`, leave **Build command** empty, and set **Publish directory** to `.`. Save and trigger the first deploy.
+3. Under **Build settings**, set **Base directory** to `round-3-vibecrew`, **Build command** to `npm run build`, and **Publish directory** to `dist`. Save and trigger the first deploy.
 4. From then on, every push to the selected production branch deploys automatically. Pull requests/other branches can create deploy previews if enabled. Keep the published directory pointed at `round-3-vibecrew`, since this repository contains multiple round projects.
 
 The repo does not contain a Netlify access token, and its current deployment connection/production branch could not be inspected from this workspace. A user with access must complete the one-time link and branch selection in Netlify. Netlify confirms that linking a Git repository enables continuous deployment on pushes; see its [monorepo configuration guide](https://docs.netlify.com/build/configure-builds/monorepos/) and [repository linking guide](https://docs.netlify.com/build/git-workflows/repo-permissions-linking/).
@@ -146,8 +147,8 @@ The repo does not contain a Netlify access token, and its current deployment con
 
 ## Current implementation and limits
 
-- Static responsive HTML/CSS/JavaScript app with persistent light/dark preference.
-- The browser UI does not use React, Redux, or TanStack. This small static MVP has no client build pipeline; adding those libraries now would not fix collaboration or invite failures. The backend is Supabase Auth + Postgres/RLS + SQL RPC, with a Supabase Edge Function using the official MCP TypeScript SDK and a Node.js stdio bridge using the MCP SDK. A framework migration is a separate product decision if the UI grows enough to benefit from component/state tooling.
+- React 19 + TypeScript + Vite frontend, Redux Toolkit for the persisted theme preference, and TanStack Query for workspace read caching. React renders the preserved screen markup and the invite dialog. Existing interaction handlers remain in a compatibility runtime so this migration keeps current flows; replacing those handlers with React hooks/components is a follow-on refactor, not a completed part of this pass.
+- Supabase Auth + Postgres/RLS + SQL RPC backend, with a Supabase Edge Function using the official MCP TypeScript SDK and a Node.js stdio bridge using the MCP SDK.
 - Supabase email one-time-link auth, workspace/project creation, invitation join, member-scoped data, and database role checks.
 - Shared tasks, task status transitions with version checks, architecture decisions, activity, and release-check status updates.
 - Client-generated task context pack, copy/download, stale-context indicators, and advisory path-overlap warnings.
@@ -158,7 +159,8 @@ Authentication email delivery and two-person end-to-end sync still require testi
 
 ## Project map
 
-- `index.html`, `styles.css`, `app.js` — frontend.
+- `index.html`, `src/`, `styles.css` — React/Vite frontend, Redux store, TanStack Query client, HTML-to-React renderer, and invite dialog.
+- `app.js` — behavior compatibility runtime for Supabase actions and existing screens.
 - `supabase-config.js` — public project URL and publishable key only.
 - `supabase/migrations/` — local mirrors of migrations applied to the hosted Supabase project.
 - `supabase/functions/vibecrew-mcp/` — remote MCP Edge Function.
@@ -167,3 +169,13 @@ Authentication email delivery and two-person end-to-end sync still require testi
 - `agent-kit/skills/vibecrew-team/SKILL.md` — portable contributor skill draft.
 
 The parent Git repository is `E:\CODR\Hack\CodeRushHackathon`. Keep VibeCrew changes in `round-3-vibecrew/`; do not initialize a nested repository or edit earlier rounds as part of this project.
+
+### From assignment to reviewed feature
+
+Sign in, open Work queue, and claim an unassigned task. On your assigned card, choose **Connect my IDE**. Name the connection after your editor, generate a personal token, and follow the [editor setup guide](agent-kit/mcp/README.md). Ask the editor to call get_my_tasks. Confirm that the returned task key matches the card, then call get_project_context with the project ID displayed in Team & activity.
+
+When ready, choose **In review** on the card and enter the GitHub pull request URL and the checks you performed. Another owner, lead or reviewer can inspect the evidence on that card and select **Done** to publish a new project revision, or **In progress** to return the task. An owner who is the only workspace member may approve their own work. Refresh the context in each IDE after acceptance.
+
+For local database verification, start Docker and run npm test from this project folder. The test starts an isolated PostgreSQL 16 database, applies every migration and checks submission, denied self-approval, accepted review and duplicate acceptance. Hosted rollout requires applying the new SQL migration before releasing the updated MCP function and browser build.
+
+Automated responsive browser checks run with npm run test:browser. Install the browser once with npx playwright install chromium. The suite uses the labeled sample workspace and checks route visibility, overflow and JavaScript errors. Database checks use Docker with the postgres:16-alpine image. Keep the hosted database migration and MCP function rollout ahead of the frontend rollout because the review controls depend on the new RPC and evidence columns.

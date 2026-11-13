@@ -1,0 +1,29 @@
+{
+  "name": "vibecrew-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test tests/review.test.mjs",
+    "test:browser": "playwright test"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.8.2",
+    "@supabase/supabase-js": "^2.57.0",
+    "@tanstack/react-query": "^5.90.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-redux": "^9.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "~5.9.3",
+    "vite": "^7.1.12"
+  }
+}

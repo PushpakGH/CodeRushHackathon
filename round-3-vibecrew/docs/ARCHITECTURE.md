@@ -65,3 +65,15 @@ Client inputs are bounded before sending and database constraints repeat importa
 - Used five-second polling instead of Realtime; predictable and quick to implement for five teams.
 - Preview hosting is expected to be static Netlify/Vercel, but no deployment is configured yet. Add the deployed origin to Supabase Auth Redirect URLs before testing email OTP there. AWS remains a later-round deployment target.
 - The Supabase CLI was unavailable, so `supabase/migrations/` mirrors the exact migration versions reported by the hosted project. Verify with the CLI when it is installed.
+
+## Proposed feature review and publication contract
+
+Work queue → assignment → Submit for review → reviewer inbox within Work queue → Accept or request changes. Keep Connect IDE next to the assignment. The setup panel shows editor configuration, project ID, and a first context read. On narrow screens stack these steps above the task history.
+
+The contributor supplies a PR URL and verification evidence. Submission binds task version, submitter and evidence to a review ID. A reviewer, lead or owner in the workspace may decide another contributor's submission. A requested change returns the task to implementation and preserves the review history.
+
+Acceptance locks the task, verifies membership, role, submitter identity, pending review and expected task version, then marks the review accepted and task done, increments the project revision and records activity in one Postgres transaction. Retry of the same accepted review returns its recorded revision. Reject conflicting decisions. Route all transitions to DONE through this operation, including overview shortcuts. Reject direct creation of completed tasks. Existing completed tasks retain historical status.
+
+Workspace browsers invalidate project queries after publication and refetch on reconnect. The read-only MCP context call returns a consistent revision and its accepted evidence. Each IDE requests a fresh snapshot at handoff. A revoked token must fail even after a previously successful read.
+
+Acceptance exercise: two isolated sessions plus two separately credentialed MCP clients. A member submits evidence, cannot approve their own review, and sees the reviewer's decision after reconnect. Race two accept calls and verify one revision increment and one activity event. A different workspace cannot read the evidence. Record local database results separately from hosted results.

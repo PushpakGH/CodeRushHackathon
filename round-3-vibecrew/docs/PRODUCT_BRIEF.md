@@ -67,3 +67,15 @@ The database enforces membership and manager/owner checks. Client-side hidden/di
 - MCP shares coordination context only. It cannot inspect or synchronize local files, write task updates, or execute agents; GitHub remains the code source of truth.
 - The hosted MCP endpoint is live; the static frontend preview deployment and email sign-in are not yet complete.
 - No external GitHub actions, factual outcome metrics, or real user content are fabricated.
+
+## Post-hackathon product direction for review
+
+The first successful session ends when a second developer opens their IDE and reads the same accepted objective, assignment and revision as the owner. Measure this using two separate identities and browser stores.
+
+1. The workspace creator owns access and nominates a lead. The lead drafts the objective, acceptance criteria, milestones, dependencies and task owners. The owner or authorized lead accepts a plan revision before implementation.
+2. Each invited contributor sees their project and assignment. Put Connect my IDE beside the assignment. Show the endpoint, personal token setup, project ID and a first tool call together. Confirm success with an authenticated read of that project.
+3. A contributor submits completion evidence and a PR reference. A reviewer accepts or returns the change. A successful review records an activity event and publishes the updated context revision in one transaction. Readers that missed a notification fetch the latest snapshot on reconnect.
+4. Keep Git as code authority and Postgres as coordination authority. IDEs pull accepted context at task start and before handoff. Show the revision and last fetch time so teammates can distinguish an old IDE snapshot from current workspace data.
+5. Release gate: isolated owner/member sessions create, join, assign, submit and review; two independent MCP clients observe the accepted revision. Include expired invitations, revoked credentials, concurrent updates and offline reconnect. Verify responsive onboarding on phone, tablet and desktop.
+
+Current evidence: a local stdio bridge passes its integration test against a simulated remote. The documented hosted endpoint responds HTTP 401 without credentials. Authenticated hosted reads and cross-user convergence require separate evidence.

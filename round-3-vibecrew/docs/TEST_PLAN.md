@@ -38,3 +38,10 @@ select
 ```
 
 The ordering query used by the application is `select * from public.release_checks where project_id = ... order by updated_at asc`.
+
+## Local verification on 2026-11-13
+
+- npm test applies all migrations to a temporary PostgreSQL 16 container with networking disabled. Authenticated role and RLS are enabled for the workflow assertions. It verifies evidence submission, invalid PR rejection, denied self-approval, owner approval, duplicate approval rejection, revision publication and outsider denial. This uses a test auth.uid implementation, rather than Supabase email sessions.
+- npm run test:browser uses Chromium at 390, 820 and 1440 pixels. It enters the synthetic sample and checks actual visibility for tasks, context, team and overview, horizontal overflow and browser exceptions. Task-board screenshots are written to ignored test-results. These checks do not exercise live review submission.
+- npm run build checks TypeScript and builds the deployable frontend.
+- Still required before hosted release: apply the new migration, deploy the MCP function, and verify real sign-in, invitation, review submission and publication using two browser identities and two personal MCP tokens. No authenticated Supabase management connection or deployment credentials were available in this session.

@@ -97,6 +97,17 @@
     return message ? message.slice(0, 220) : 'The request could not be completed. Check your connection and try again.';
   };
 
+  async function queryData(queryKey, request) {
+    const client = window.vibecrewQueryClient;
+    const key = ['vibecrew', currentUser?.id || 'anonymous', ...queryKey];
+    const queryFn = async () => {
+      const { data, error } = await request();
+      if (error) throw error;
+      return data;
+    };
+    return client ? client.fetchQuery({ queryKey: key, queryFn, staleTime: 0 }) : queryFn();
+  }
+
   function inviteErrorGuidance(error) {
     const message = String(error?.message || '').toLowerCase();
     if (message.includes('vc_can_manage_workspace') && message.includes('does not exist')) {
@@ -250,11 +261,9 @@
   }
 
   async function listWorkspaceMemberships() {
-    const { data, error } = await db.from('workspace_members')
+    return (await queryData(['memberships'], () => db.from('workspace_members')
       .select('workspace_id, user_id, display_name, role')
-      .eq('user_id', currentUser.id);
-    if (error) throw error;
-    return data || [];
+      .eq('user_id', currentUser.id))) || [];
   }
 
   async function handleAuthenticatedSession(session) {
@@ -318,31 +327,26 @@
     if (!db || !currentUser) return;
     if (!silent) showWorkspaceSetup('Loading shared project data…');
     try {
-      const [workspaceResult, projectResult, memberResult] = await Promise.all([
-        db.from('workspaces').select('*').eq('id', workspaceId).single(),
-        db.from('projects').select('*').eq('workspace_id', workspaceId).order('created_at', { ascending: true }),
-        db.from('workspace_members').select('*').eq('workspace_id', workspaceId).order('joined_at', { ascending: true })
+      const [workspace, projectRows, memberRows] = await Promise.all([
+        queryData(['workspace', workspaceId], () => db.from('workspaces').select('*').eq('id', workspaceId).single()),
+        queryData(['projects', workspaceId], () => db.from('projects').select('*').eq('workspace_id', workspaceId).order('created_at', { ascending: true })),
+        queryData(['workspace-members', workspaceId], () => db.from('workspace_members').select('*').eq('workspace_id', workspaceId).order('joined_at', { ascending: true }))
       ]);
-      if (workspaceResult.error) throw workspaceResult.error;
-      if (projectResult.error) throw projectResult.error;
-      if (memberResult.error) throw memberResult.error;
-      activeWorkspace = workspaceResult.data;
-      activeMembers = memberResult.data || [];
+      activeWorkspace = workspace;
+      activeMembers = memberRows || [];
       currentMembership = membership || activeMembers.find(member => member.user_id === currentUser.id);
       if (!currentMembership) throw new Error('Your workspace membership could not be confirmed.');
       currentRole = currentMembership.role;
-      const projectRows = projectResult.data || [];
       activeProject = projectRows.find(project => project.id === preferredProjectId) || projectRows[0];
       if (!activeProject) throw new Error('This workspace has no active project.');
       const projectId = activeProject.id;
-      const [taskResult, decisionResult, activityResult, checkResult] = await Promise.all([
-        db.from('tasks').select('*').eq('project_id', projectId).order('created_at', { ascending: false }),
-        db.from('architecture_decisions').select('*').eq('project_id', projectId).order('created_at', { ascending: false }),
-        db.from('activity_events').select('*').eq('project_id', projectId).order('created_at', { ascending: false }).limit(50),
+      const [taskRows, decisionRows, activityRows, checkRows] = await Promise.all([
+        queryData(['tasks', projectId], () => db.from('tasks').select('*').eq('project_id', projectId).order('created_at', { ascending: false })),
+        queryData(['decisions', projectId], () => db.from('architecture_decisions').select('*').eq('project_id', projectId).order('created_at', { ascending: false })),
+        queryData(['activity', projectId], () => db.from('activity_events').select('*').eq('project_id', projectId).order('created_at', { ascending: false }).limit(50)),
         // release_checks has updated_at (not created_at) in the deployed schema.
-        db.from('release_checks').select('*').eq('project_id', projectId).order('updated_at', { ascending: true })
+        queryData(['release-checks', projectId], () => db.from('release_checks').select('*').eq('project_id', projectId).order('updated_at', { ascending: true }))
       ]);
-      for (const result of [taskResult, decisionResult, activityResult, checkResult]) if (result.error) throw result.error;
 
       const memberById = new Map(activeMembers.map(member => [member.user_id, member]));
       people = activeMembers.map((member, index) => ({
@@ -355,7 +359,7 @@
         tone: index % 5,
         lastSeen: member.user_id === currentUser.id ? 'Signed in now' : 'Workspace member'
       }));
-      tasks = (taskResult.data || []).map(row => ({
+      tasks = (taskRows || []).map(row => ({
         databaseId: row.id,
         version: row.version,
         id: row.task_key,
@@ -371,10 +375,11 @@
         testPlan: row.test_plan,
         branch: row.branch,
         prUrl: row.pr_url,
+        evidence: row.review_evidence,
         contextRevisionSeen: row.context_revision_seen,
         createdAt: row.created_at
       }));
-      decisions = (decisionResult.data || []).map(row => ({
+      decisions = (decisionRows || []).map(row => ({
         databaseId: row.id,
         version: row.version,
         id: row.decision_key,
@@ -386,7 +391,7 @@
         author: memberById.get(row.author_id)?.display_name || 'Former member',
         authorId: row.author_id
       }));
-      activities = (activityResult.data || []).map(row => ({
+      activities = (activityRows || []).map(row => ({
         actor: memberById.get(row.actor_id)?.display_name || 'Team member',
         action: '',
         target: row.summary,
@@ -394,7 +399,7 @@
         icon: row.event_type === 'decision_accepted' ? '⌘' : row.event_type === 'task_created' ? '＋' : '↗',
         time: relativeTime(row.created_at)
       }));
-      releaseChecks = (checkResult.data || []).map(row => ({
+      releaseChecks = (checkRows || []).map(row => ({
         databaseId: row.id,
         id: row.check_key,
         title: row.title,
@@ -749,6 +754,11 @@
     scope.className = `scope-chip ${isOverlap ? 'overlap' : ''}`; scope.textContent = path; scope.title = task.scope.join('\n') || 'No file scope declared';
     card.append(scope);
     const foot = document.createElement('div'); foot.className = 'board-card-foot';
+    if (task.evidence) {
+      const evidence = document.createElement('p');
+      evidence.textContent = task.evidence + ' · ' + task.prUrl;
+      card.append(evidence);
+    }
     const owner = document.createElement('span'); owner.className = 'owner-mini';
     const person = people.find(member => member.name === task.owner);
     owner.append(avatar(person?.initials || '—', person?.tone ?? 0));
@@ -761,6 +771,17 @@
       select.append(option);
     });
     foot.append(select); card.append(foot);
+    if (liveMode && task.ownerId === currentUser?.id) {
+      const connect = document.createElement('button');
+      connect.type = 'button';
+      connect.className = 'button button-quiet button-small';
+      connect.textContent = 'Connect my IDE';
+      connect.addEventListener('click', () => {
+        navigate('team');
+        $('#agent-token-label').focus();
+      });
+      card.append(connect);
+    }
     if (isStale(task)) { const stale = document.createElement('span'); stale.className = 'stale-tag'; stale.textContent = 'CONTEXT STALE'; card.append(stale); }
     return card;
   }
@@ -863,6 +884,8 @@
     $('#main-content').focus({ preventScroll: true });
   }
 
+  window.addEventListener('hashchange', () => navigate(location.hash.slice(1)));
+
   function showToast(message) {
     const toast = $('#toast'); toast.textContent = message; toast.classList.add('is-visible');
     window.clearTimeout(toastTimer); toastTimer = window.setTimeout(() => toast.classList.remove('is-visible'), 2800);
@@ -954,11 +977,45 @@
     return true;
   }
 
+  function openReviewSubmission(task) {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal';
+    dialog.setAttribute('aria-labelledby', 'review-heading');
+    dialog.innerHTML = '<form><h2 id="review-heading">Submit for review</h2><p>Share the pull request and checks your reviewer should verify.</p><label class="field-label" for="review-pr">GitHub pull request URL</label><input class="form-control" id="review-pr" type="url" required maxlength="500" pattern="https://github[.]com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[1-9][0-9]*"><label class="field-label" for="review-evidence">Verification evidence</label><textarea class="form-control" id="review-evidence" required maxlength="2000" rows="5"></textarea><p role="alert" id="review-error"></p><div class="modal-actions"><button type="button" class="button button-quiet">Cancel</button><button class="button button-primary" type="submit">Submit for review</button></div></form>';
+    const form = dialog.querySelector('form');
+    form.querySelector('input').value = task.prUrl || '';
+    form.querySelector('textarea').value = task.evidence || '';
+    dialog.querySelector('button[type="button"]').onclick = () => dialog.close();
+    dialog.addEventListener('close', () => { dialog.remove(); renderTaskBoard(); }, { once: true });
+    form.onsubmit = async event => {
+      event.preventDefault();
+      const button = form.querySelector('button[type="submit"]');
+      button.disabled = true;
+      const { error } = await db.rpc('submit_feature_review', {
+        p_task_id: task.databaseId,
+        p_expected_version: task.version,
+        p_pr_url: form.querySelector('input').value.trim(),
+        p_evidence: form.querySelector('textarea').value.trim()
+      });
+      button.disabled = false;
+      if (error) { dialog.querySelector('[role="alert"]').textContent = friendlyError(error); return; }
+      dialog.close();
+      await loadWorkspace(activeWorkspace.id, activeProject.id, currentMembership, true);
+      showToast('Submitted. Ask a workspace reviewer to verify the evidence and accept the feature.');
+    };
+    document.body.append(dialog);
+    dialog.showModal();
+  }
+
   async function setTaskStatus(taskId, status) {
     const task = tasks.find(item => item.id === taskId);
     if (!task || !statusOptions.some(([value]) => value === status)) return;
     if (liveMode) {
       try {
+        if (status === 'IN_REVIEW') {
+          openReviewSubmission(task);
+          return;
+        }
         const { error } = await db.rpc('update_task_status', {
           p_task_id: task.databaseId,
           p_status: status,
@@ -1416,6 +1473,7 @@
   const themeToggle = $('.theme-toggle');
   function setTheme(theme, persist) {
     document.documentElement.dataset.theme = theme;
+    window.dispatchEvent(new CustomEvent('vibecrew:theme', { detail: theme }));
     themeToggle.innerHTML = theme === 'dark' ? '<span aria-hidden="true">☼</span>' : '<span aria-hidden="true">◐</span>';
     themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
     const meta = $('meta[name="theme-color"]'); if (meta) meta.content = theme === 'dark' ? '#111716' : '#f0f2ee';
