@@ -84,6 +84,9 @@
   };
   const friendlyError = error => {
     const message = String(error?.message || '').replace(/\s+/g, ' ').trim();
+    if (error?.code === 'PGRST202' && message.includes('submit_feature_review')) {
+      return 'Feature review is awaiting a server update. Ask the project owner to apply the 20261113000100_feature_review migration, then retry. Your evidence remains in this form.';
+    }
     const details = `${error?.code || ''} ${error?.name || ''} ${message}`.toLowerCase();
     if (details.includes('over_email_send_rate_limit') || details.includes('email rate limit exceeded')) {
       return 'Supabase has reached its built-in email limit (2 emails per hour for the whole project). Stop retrying and wait for the quota to recover. To let all teammates sign in, the project owner needs to configure a custom SMTP provider in Supabase Authentication settings, then set a suitable email limit.';
