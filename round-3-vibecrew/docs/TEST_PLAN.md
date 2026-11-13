@@ -45,3 +45,13 @@ The ordering query used by the application is `select * from public.release_chec
 - npm run test:browser uses Chromium at 390, 820 and 1440 pixels. It enters the synthetic sample and checks actual visibility for tasks, context, team and overview, horizontal overflow and browser exceptions. Task-board screenshots are written to ignored test-results. These checks do not exercise live review submission.
 - npm run build checks TypeScript and builds the deployable frontend.
 - Still required before hosted release: apply the new migration, deploy the MCP function, and verify real sign-in, invitation, review submission and publication using two browser identities and two personal MCP tokens. No authenticated Supabase management connection or deployment credentials were available in this session.
+
+## Hosted backend verification on 2026-11-13
+
+Applied 20261113000100_feature_review.sql through the authenticated project SQL editor inside a transaction. The live REST endpoint now returns permission denied to an unauthenticated request, replacing the previous function-not-found error. Deployed the repository MCP function source through the dashboard and observed the updated deployment timestamp.
+
+Changed Auth Site URL to https://binaryowl-vibecrew.netlify.app/ and added that exact redirect while preserving the existing allow-list entry.
+
+Ran the review SQL assertions against hosted Postgres with actual auth.uid JWT subject settings and authenticated role. All assertions succeeded and synthetic users, workspaces, tasks and activity were rolled back. This verifies hosted database role enforcement and publication semantics, rather than email delivery or browser/IDE sessions.
+
+Still awaiting a real app sign-in for end-to-end invitation, browser convergence and two independently authenticated MCP clients. Dashboard sign-in and app sign-in are separate sessions.
