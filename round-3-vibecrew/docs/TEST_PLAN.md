@@ -55,3 +55,7 @@ Changed Auth Site URL to https://binaryowl-vibecrew.netlify.app/ and added that 
 Ran the review SQL assertions against hosted Postgres with actual auth.uid JWT subject settings and authenticated role. All assertions succeeded and synthetic users, workspaces, tasks and activity were rolled back. This verifies hosted database role enforcement and publication semantics, rather than email delivery or browser/IDE sessions.
 
 Still awaiting a real app sign-in for end-to-end invitation, browser convergence and two independently authenticated MCP clients. Dashboard sign-in and app sign-in are separate sessions.
+
+## Live email delivery recovery
+
+A real app sign-in request returned HTTP 504. Supabase custom Gmail SMTP was configured on port 564. Changed the port to 587 and observed the dashboard success confirmation. A fresh request for the authorized test address succeeded and the app displayed its inbox confirmation. Inbox receipt and redemption still require the user to open the private link. No SMTP password was read or changed.
