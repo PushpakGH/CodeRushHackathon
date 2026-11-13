@@ -77,3 +77,9 @@ Local build, two Chromium browser tests, PostgreSQL migration/authorization asse
 The hosted context/progress schema was applied and rollback-only tests passed with actual auth.uid subject claims. Those tests cover empty workspace creation, publication revision and stale-version checks, denied member publication, denied read-only agent write, claimed task ownership and progress with expected versions.
 
 Production replacement of the vibecrew-mcp Edge Function was rejected by automatic approval review pending explicit permission for that exact function deployment. Frontend release and live document-to-IDE/agent-write smoke checks await that coordinated rollout.
+
+## Approved production rollout — 2026-11-14
+
+After explicit approval, submitted the production vibecrew-mcp replacement. Browser automation disconnected during confirmation, so verified deployment through the public health response: HTTP 200 and all three tools including update_my_task. Netlify reported ready for b901de7 after the GitHub push.
+
+The expanded context editor/member view and project-switch draft reset pass Chromium checks. The new scoped write path passes hosted rollback SQL tests and local bridge validation. A fresh authenticated browser-to-MCP progress-token check remains unverified because the browser transport disconnected. Existing production tokens remain read-only by default.

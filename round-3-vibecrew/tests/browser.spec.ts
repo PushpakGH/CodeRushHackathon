@@ -35,4 +35,7 @@ test('owner can compose project context and members receive a read-only view',as
   await expect(page.getByRole('button',{name:'Publish shared context',exact:true})).toHaveCount(0);
   await page.getByText('Team plan · plan · v1',{exact:true}).click();
   await expect(page.getByText('Published plan',{exact:true})).toBeVisible();
+  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('vibecrew:context',{detail:{projectId:'another-synthetic-project',canPublish:true,documents:[]}})));
+  await expect(page.getByLabel('Title',{exact:true})).toHaveValue('');
+  await expect(page.getByLabel('Markdown content',{exact:true})).toHaveValue('');
 });
