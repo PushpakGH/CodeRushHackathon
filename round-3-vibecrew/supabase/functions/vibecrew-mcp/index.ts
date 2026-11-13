@@ -2,7 +2,7 @@ import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 import { createClient } from "@supabase/supabase-js";
 import * as z from "zod/v4";
 
-type AgentIdentity = { userId: string; workspaceId: string };
+type AgentIdentity = { userId: string; workspaceId: string; tokenHash: string; allowProgress: boolean };
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -38,7 +38,7 @@ async function authenticate(request: Request): Promise<AgentIdentity | null> {
   const tokenHash = toHex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(match[1])));
   const { data: token, error } = await admin
     .from("agent_access_tokens")
-    .select("user_id, workspace_id, expires_at, revoked_at")
+    .select("user_id, workspace_id, expires_at, revoked_at, allow_progress")
     .eq("token_hash", tokenHash)
     .maybeSingle();
   if (error || !token || token.revoked_at || new Date(token.expires_at).getTime() <= Date.now()) return null;
@@ -51,7 +51,7 @@ async function authenticate(request: Request): Promise<AgentIdentity | null> {
     .maybeSingle();
   if (membershipError || !membership) return null;
 
-  return { userId: token.user_id, workspaceId: token.workspace_id };
+  return { userId: token.user_id, workspaceId: token.workspace_id, tokenHash, allowProgress: token.allow_progress };
 }
 
 function registerTools(identity: AgentIdentity) {
@@ -74,18 +74,25 @@ function registerTools(identity: AgentIdentity) {
         if (projectError) throw projectError;
         if (!project) return { content: [{ type: "text", text: "Project not found in this token's workspace." }], isError: true };
 
-        const [membersResult, decisionsResult, tasksResult, checksResult, activityResult] = await Promise.all([
+        const [membersResult, decisionsResult, tasksResult, checksResult, activityResult, documentsResult] = await Promise.all([
           admin.from("workspace_members").select("user_id, display_name, role").eq("workspace_id", identity.workspaceId),
           admin.from("architecture_decisions").select("decision_key, title, context, decision, consequence, version, created_at").eq("project_id", project.id).eq("status", "ACCEPTED").order("created_at", { ascending: true }),
-          admin.from("tasks").select("task_key, title, description, status, priority, owner_id, dependencies, acceptance, test_plan, scope, branch, pr_url, review_evidence, submitted_by, reviewed_by, published_revision, context_revision_seen, updated_at").eq("project_id", project.id).order("created_at", { ascending: true }).limit(100),
+          admin.from("tasks").select("task_key, version, title, description, status, priority, owner_id, dependencies, acceptance, test_plan, scope, branch, pr_url, review_evidence, submitted_by, reviewed_by, published_revision, context_revision_seen, updated_at").eq("project_id", project.id).order("created_at", { ascending: true }).limit(100),
           admin.from("release_checks").select("check_key, title, status, evidence, updated_at").eq("project_id", project.id).order("updated_at", { ascending: true }),
           admin.from("activity_events").select("event_type, summary, created_at").eq("project_id", project.id).order("created_at", { ascending: false }).limit(15),
+          admin.from("project_documents").select("kind,title,body,version,updated_at").eq("project_id", project.id).order("kind"),
         ]);
-        for (const result of [membersResult, decisionsResult, tasksResult, checksResult, activityResult]) {
+        for (const result of [membersResult, decisionsResult, tasksResult, checksResult, activityResult, documentsResult]) {
           if (result.error) throw result.error;
         }
 
         const names = new Map((membersResult.data || []).map((member) => [member.user_id, member.display_name]));
+        const {data: latestProject, error: latestError} = await admin.from("projects")
+          .select("context_revision").eq("id", project.id).eq("workspace_id", identity.workspaceId).single();
+        if (latestError) throw latestError;
+        if (latestProject.context_revision !== project.context_revision) {
+          return {isError:true,content:[{type:"text",text:"The shared context changed while loading. Fetch get_project_context again before starting work."}]};
+        }
         const context = {
           generatedAt: new Date().toISOString(),
           source: "VibeCrew shared workspace",
@@ -97,6 +104,7 @@ function registerTools(identity: AgentIdentity) {
             contextRevision: project.context_revision,
             updatedAt: project.updated_at,
           },
+          documents: documentsResult.data || [],
           acceptedDecisions: decisionsResult.data || [],
           tasks: (tasksResult.data || []).map((task) => ({
             ...task,
@@ -134,7 +142,7 @@ function registerTools(identity: AgentIdentity) {
         const projectNames = new Map(projects.map((project) => [project.id, project.name]));
         const { data: tasks, error } = await admin
           .from("tasks")
-          .select("project_id, task_key, title, description, status, priority, dependencies, acceptance, test_plan, scope, branch, pr_url, review_evidence, submitted_by, reviewed_by, published_revision, context_revision_seen, updated_at")
+          .select("project_id, task_key, version, title, description, status, priority, dependencies, acceptance, test_plan, scope, branch, pr_url, review_evidence, submitted_by, reviewed_by, published_revision, context_revision_seen, updated_at")
           .in("project_id", projects.map((project) => project.id))
           .eq("owner_id", identity.userId)
           .order("updated_at", { ascending: false })
@@ -148,13 +156,21 @@ function registerTools(identity: AgentIdentity) {
     },
   );
 
+  server.registerTool("update_my_task", {
+    description: "Opt-in progress token required. Claim an unassigned task or update your own work. Read the current task version first. Submit PR URL and evidence for IN_REVIEW. Completion requires human review.",
+    inputSchema: z.object({ taskKey: z.string().max(40), expectedVersion: z.number().int().positive(), status: z.enum(["CLAIMED","IN_PROGRESS","BLOCKED","IN_REVIEW"]), prUrl: z.string().max(500).default(""), evidence: z.string().max(2000).default("") })
+  }, async ({taskKey,expectedVersion,status,prUrl,evidence}) => {
+    if (!identity.allowProgress) return {isError:true,content:[{type:"text",text:"This token is read-only. Create a new token with progress updates enabled."}]};
+    const {data,error} = await admin.rpc("agent_update_task", {p_token_hash:identity.tokenHash,p_task_key:taskKey,p_expected_version:expectedVersion,p_status:status,p_pr_url:prUrl,p_evidence:evidence});
+    return error ? {isError:true,content:[{type:"text",text:error.message}]} : {content:[{type:"text",text:JSON.stringify(data)}]};
+  });
   return server;
 }
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
   if (new URL(request.url).pathname.endsWith("/health")) {
-    return jsonResponse({ ok: true, service: "vibecrew-mcp", authenticationRequired: true, tools: ["get_project_context", "get_my_tasks"] });
+    return jsonResponse({ ok: true, service: "vibecrew-mcp", authenticationRequired: true, tools: ["get_project_context", "get_my_tasks", "update_my_task"] });
   }
 
   try {

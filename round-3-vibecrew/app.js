@@ -19,6 +19,7 @@
   let activeWorkspace = null;
   let activeProject = null;
   let activeMembers = [];
+  let contextDocuments = [];
   let pollTimer = null;
   let pollInFlight = false;
 
@@ -136,6 +137,8 @@
   }
 
   function showSignIn(message = '') {
+    contextDocuments = [];
+    window.dispatchEvent(new CustomEvent('vibecrew:context', { detail: null }));
     $('#app-shell').hidden = true;
     $('#auth-screen').hidden = false;
     $('#signin-panel').hidden = false;
@@ -214,6 +217,9 @@
   }
 
   function enterPreview() {
+    contextDocuments = [];
+    window.dispatchEvent(new CustomEvent('vibecrew:context', { detail: null }));
+    $('[data-view="discovery"] .discovery-layout').hidden = false;
     liveMode = false;
     currentUser = null;
     currentRole = 'member';
@@ -411,6 +417,7 @@
         evidence: row.evidence,
         updatedBy: row.updated_by
       }));
+      contextDocuments = await queryData(['documents', projectId], () => db.from('project_documents').select('*').eq('project_id', projectId).order('kind'));
       projectRevision.value = activeProject.context_revision;
       generatedTaskId = tasks.some(task => task.id === generatedTaskId) ? generatedTaskId : (tasks[0]?.id || '');
       dismissOverlap = false;
@@ -445,7 +452,25 @@
     return `${Math.floor(seconds / 86400)}d ago`;
   }
 
+  window.vibecrewPublishDocument = async document => {
+    if (!liveMode) throw new Error('Sign in to publish shared context.');
+    const { error } = await db.rpc('publish_project_document', {
+      p_project_id: activeProject.id, p_kind: document.kind, p_title: document.title,
+      p_body: document.body, p_expected_version: document.version
+    });
+    if (error) throw error;
+    await loadWorkspace(activeWorkspace.id, activeProject.id, currentMembership, true);
+  };
+
   function updateWorkspaceSummary() {
+    window.dispatchEvent(new CustomEvent('vibecrew:context', { detail: {
+      documents: contextDocuments, canPublish: canManageProject(), projectId: activeProject.id
+    } }));
+    $('[data-view="discovery"] .discovery-layout').hidden = true;
+    $('[data-view="discovery"] .gate-status').textContent = contextDocuments.length ? 'PUBLISHED CONTEXT' : 'NO CONTEXT PUBLISHED';
+    $('[data-route="discovery"] .nav-status').hidden = true;
+    $('[data-route="decisions"] .nav-count').textContent = decisions.length;
+    $('.context-option small').textContent = decisions.filter(item => item.status === 'ACCEPTED').map(item => item.id).join(' · ') || 'No accepted decisions';
     $('.project-title h2').textContent = activeProject.name;
     $('.project-title p').textContent = activeProject.objective || 'Add a project objective during discovery.';
     $('.phase-pill').textContent = activeProject.lifecycle_stage;
@@ -883,7 +908,8 @@
     tasks.forEach(task => { const option = document.createElement('option'); option.value = task.id; option.textContent = `${task.id} · ${task.title}`; option.selected = task.id === current; select.append(option); });
     generatedTaskId = current;
     const task = tasks.find(item => item.id === generatedTaskId);
-    $('#context-preview').textContent = task ? buildContext(task) : '# No task selected\n\nCreate a task to generate a task context pack.';
+    const documentsMarkdown = contextDocuments.map(doc => '## ' + doc.title + ' (v' + doc.version + ')\n\n' + doc.body).join('\n\n');
+    $('#context-preview').textContent = (task ? buildContext(task) : '# Project context\n\n' + (activeProject?.objective || 'No task selected.')) + (documentsMarkdown ? '\n\n# Published project documents\n\n' + documentsMarkdown : '');
     renderRevision();
   }
 
@@ -1331,20 +1357,21 @@
         workspace_id: activeWorkspace.id,
         label,
         token_hash: tokenHash,
+        allow_progress: Boolean($('#agent-progress-scope')?.checked),
         expires_at: expiresAt
       });
       if (error) throw error;
       $('#agent-token-output').value = rawToken;
-      $('#agent-token-expiry-note').textContent = `Read-only access to ${activeWorkspace.name} · expires ${new Date(expiresAt).toLocaleString()}. Copy it now; it cannot be retrieved later.`;
+      $('#agent-token-expiry-note').textContent = `Workspace access to ${activeWorkspace.name} · expires ${new Date(expiresAt).toLocaleString()}. Copy it now; it cannot be retrieved later.`;
       $('#agent-token-dialog').showModal();
       await loadAgentTokens();
       form.reset();
-      showToast('Personal read-only agent token created.');
+      showToast('Personal agent token created with your selected permissions.');
     } catch (error) {
       errorNode.textContent = `Could not create the token: ${friendlyError(error)}`; errorNode.hidden = false;
     } finally {
       button.disabled = !liveMode;
-      button.textContent = 'Create read-only token';
+      button.textContent = 'Create agent token';
     }
   }
 

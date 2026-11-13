@@ -179,3 +179,12 @@ When ready, choose **In review** on the card and enter the GitHub pull request U
 For local database verification, start Docker and run npm test from this project folder. The test starts an isolated PostgreSQL 16 database, applies every migration and checks submission, denied self-approval, accepted review and duplicate acceptance. Hosted rollout requires applying the new SQL migration before releasing the updated MCP function and browser build.
 
 Automated responsive browser checks run with npm run test:browser. Install the browser once with npx playwright install chromium. The suite uses the labeled sample workspace and checks route visibility, overflow and JavaScript errors. Database checks use Docker with the postgres:16-alpine image. Keep the hosted database migration and MCP function rollout ahead of the frontend rollout because the review controls depend on the new RPC and evidence columns.
+
+
+### Shared planning and agent progress
+
+New workspaces start with no tasks, decisions, planning documents or release-check templates. Your workspace/project name and objective are your own input. Existing workspaces retain existing data.
+
+Owners and leads publish the product plan, system architecture, frontend/backend design and agent instructions under Discovery → Shared project context. Each document accepts Markdown or a local text file. Members read the published documents and receive them in MCP project context and Markdown exports.
+
+Enable progress permission only when creating a new personal agent token. Agents can claim unassigned work, update their own progress and submit real PR evidence for review. Human acceptance publishes completion. Existing tokens retain read-only access. See agent-kit/mcp/README.md for the complete IDE setup and workflow prompt.

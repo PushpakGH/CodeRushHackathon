@@ -8,7 +8,7 @@ The remote endpoint is:
 https://kmlzmgmpyajdtbrsxtoq.supabase.co/functions/v1/vibecrew-mcp
 ```
 
-It currently exposes two **read-only** tools:
+It currently exposes the following tools:
 
 - `get_project_context({ projectId })` — objective, accepted decisions, task plan and acceptance checks, team roles, release checks, revision, and recent activity for a project in the token's workspace.
 - `get_my_tasks({})` — tasks assigned to the teammate who created the token.
@@ -69,6 +69,27 @@ The bridge inherits `VIBECREW_MCP_TOKEN` from the IDE process environment; the s
 ## Limits
 
 - This is context and task-plan sharing, not live file synchronization. Every contributor still edits and runs code locally; use branches and pull requests in GitHub to combine code.
-- Tools do not write VibeCrew records, edit files, or start/stop agents. Update task status in the VibeCrew UI.
+- The optional update_my_task tool changes only allowed task progress for its token owner. It requires explicit progress permission. Code, Git branches and agent execution remain local.
 - Workspace membership and token expiry/revocation are checked on every remote request. Authenticated calls against a real user/workspace still need an end-to-end sign-in test.
 - Do not send credentials or sensitive code in task descriptions; MCP returns the coordination text stored in that workspace.
+
+
+## Owner-to-agent workflow
+
+1. The owner opens Discovery and publishes Markdown documents for product plan, architecture, frontend, backend and agent instructions. Use the local file picker to import an existing .md or .txt file. Publishing increments the project revision.
+2. The owner creates tasks with paths, acceptance criteria and checks. Members connect their personal IDE token and call get_project_context at task start.
+3. To let the agent report work, create a NEW token with **Allow my agent to claim work and submit progress** checked. Existing tokens remain read-only. Keep this permission unchecked for reviewers or read-only clients.
+4. The agent reads get_my_tasks or get_project_context, then uses the task_key and version with update_my_task. Use CLAIMED for an unassigned task, IN_PROGRESS or BLOCKED for owned work, and IN_REVIEW with a GitHub PR URL and evidence.
+5. A reviewer accepts the feature through VibeCrew after examining the PR. Every contributor fetches get_project_context again before their next task. Stale version errors require reading the current state before retrying.
+
+Example tool arguments (replace the task key and expectedVersion with actual values from your project):
+
+~~~json
+{"taskKey":"VBC-001","expectedVersion":1,"status":"IN_PROGRESS"}
+~~~
+
+Example instruction to your IDE agent:
+
+> Read get_project_context for my project and follow its published plan, architecture and agent instructions. Confirm my assignment and current task version. Claim or start only the agreed task with update_my_task. Implement in my local repository and run its checks. Open a PR using my normal Git tools. Submit its real URL and verification evidence with status IN_REVIEW. Ask me to coordinate if shared context changes or another task owns the same paths. A human reviewer accepts completion.
+
+MCP requests are initiated by the IDE agent. For reliable freshness, ask the agent to fetch context at task start, before a handoff, and after receiving a stale-version error. IDE clients differ in how they ask users to approve tool calls.

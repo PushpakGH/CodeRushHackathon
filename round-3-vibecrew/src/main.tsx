@@ -9,6 +9,7 @@ import '../styles.css';
 import '../supabase-config.js';
 import { setTheme, store } from './store';
 import type { RootState } from './store';
+import { ContextLibrary } from './ContextLibrary';
 import { InviteDialog } from './InviteDialog';
 
 const queryClient = new QueryClient({
@@ -42,7 +43,7 @@ function ThemeBridge() {
 
 function App() {
   const shell = shellMarkup.replace(/<dialog class="modal invite-modal"[\s\S]*?<\/dialog>\s*/, '');
-  return <Provider store={store}><QueryClientProvider client={queryClient}>{htmlToReact(shell)}<InviteDialog /><ThemeBridge /><RuntimeBootstrap /></QueryClientProvider></Provider>;
+  return <Provider store={store}><QueryClientProvider client={queryClient}>{htmlToReact(shell)}<InviteDialog /><ContextLibrary /><ThemeBridge /><RuntimeBootstrap /></QueryClientProvider></Provider>;
 }
 
 createRoot(document.getElementById('root')!).render(<App />);

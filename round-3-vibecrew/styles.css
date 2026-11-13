@@ -529,3 +529,8 @@ html[data-theme="light"] .context-preview-panel { background: #18211e; }
 @media (prefers-reduced-motion: reduce) {
   *,*::before,*::after { scroll-behavior: auto!important; animation-duration: .01ms!important; animation-iteration-count: 1!important; transition-duration: .01ms!important; }
 }
+.context-library { margin-top: 20px; padding: 20px; }
+.context-library form { display: grid; gap: 12px; margin-top: 20px; }
+.context-library pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.7 var(--mono); padding: 12px; }
+.context-library details { margin: 12px 0; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+.context-library textarea { font-family: var(--mono); }

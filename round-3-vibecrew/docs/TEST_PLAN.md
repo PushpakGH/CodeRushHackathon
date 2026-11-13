@@ -69,3 +69,11 @@ Revoked the temporary token through the app. The live MCP endpoint subsequently 
 ## Live invitation creation on 2026-11-14
 
 With explicit approval, created a Member invitation from the signed-in owner session. The form returned a nonempty invitation URL, enabled Copy link and displayed no error. Kept the bearer link private and closed its one-time output. The invite retains its normal seven-day / ten-use lifetime. A second account has not redeemed this invitation, so cross-identity joining remains unverified.
+
+## Shared planning and scoped progress — 2026-11-14
+
+Local build, two Chromium browser tests, PostgreSQL migration/authorization assertions, and MCP bridge tests pass. The context-editor browser test supplies a synthetic runtime state and verifies owner editing and member read-only rendering. It does not claim a live document was published.
+
+The hosted context/progress schema was applied and rollback-only tests passed with actual auth.uid subject claims. Those tests cover empty workspace creation, publication revision and stale-version checks, denied member publication, denied read-only agent write, claimed task ownership and progress with expected versions.
+
+Production replacement of the vibecrew-mcp Edge Function was rejected by automatic approval review pending explicit permission for that exact function deployment. Frontend release and live document-to-IDE/agent-write smoke checks await that coordinated rollout.

@@ -47,6 +47,11 @@ local.registerTool(
   async () => remote.callTool({ name: "get_my_tasks", arguments: {} }),
 );
 
+local.registerTool("update_my_task", {
+  description: "Requires an opt-in progress token. Claim unassigned work, update your own task, or submit review evidence. Read task version first. Human reviewers accept completion.",
+  inputSchema: z.object({taskKey:z.string().max(40),expectedVersion:z.number().int().positive(),status:z.enum(["CLAIMED","IN_PROGRESS","BLOCKED","IN_REVIEW"]),prUrl:z.string().max(500).default(""),evidence:z.string().max(2000).default("")})
+}, async args => remote.callTool({name:"update_my_task",arguments:args}));
+
 try {
   await remote.connect(transport);
   await local.connect(new StdioServerTransport());

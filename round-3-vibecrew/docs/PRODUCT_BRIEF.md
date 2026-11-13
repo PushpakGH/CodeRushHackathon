@@ -20,7 +20,7 @@ Owner signs in by email link → creates a workspace and project → invites tea
 - Task creation and atomic status update with row version checks; member may claim unassigned work and update owned tasks; owner/lead/reviewer can update status.
 - Decision proposal and owner/lead acceptance with project context revision increment.
 - Client-built context Markdown copy/download, stale revision indicator, path-overlap warning, local preview mode, dark/light theme.
-- Remote, read-only MCP access for each contributor's local coding agent: fetch current project context or the caller's assigned tasks through a workspace-scoped personal token.
+- Remote MCP access for each contributor's local coding agent: fetch current project context or the caller's assigned tasks through a workspace-scoped personal token.
 - Five-second polling while the app is visible.
 
 ### P1 — deferred
@@ -29,7 +29,7 @@ Owner signs in by email link → creates a workspace and project → invites tea
 
 ### P2 — out of scope
 
-- Native IDE extensions, IDE writeback, remote agent execution, shared editor, GitHub App writes/auto-merge, chat/video, enterprise SSO, paid AI behavior, and production hosting/data. MCP is the provider-neutral bridge between shared planning data and local agents.
+- Native IDE extensions, remote agent execution, shared editor, GitHub App writes/auto-merge, chat/video, enterprise SSO, paid AI behavior, and production hosting/data. MCP is the provider-neutral bridge between shared planning data and local agents.
 
 ## Roles and boundaries
 
@@ -79,3 +79,6 @@ The first successful session ends when a second developer opens their IDE and re
 5. Release gate: isolated owner/member sessions create, join, assign, submit and review; two independent MCP clients observe the accepted revision. Include expired invitations, revoked credentials, concurrent updates and offline reconnect. Verify responsive onboarding on phone, tablet and desktop.
 
 Current evidence: a local stdio bridge passes its integration test against a simulated remote. The documented hosted endpoint responds HTTP 401 without credentials. Authenticated hosted reads and cross-user convergence require separate evidence.
+
+
+Post-hackathon extension: owner-published Markdown context library, initially empty workspace data, and opt-in scoped MCP task progress. Human acceptance remains the completion publication boundary.

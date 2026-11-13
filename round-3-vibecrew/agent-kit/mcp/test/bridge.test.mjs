@@ -56,7 +56,7 @@ after(async () => {
   await Promise.allSettled([new Promise((resolve) => httpServer.close(resolve)), handler.close()]);
 });
 
-test("stdio bridge exposes only its read-only VibeCrew tools and forwards authenticated calls", async () => {
+test("stdio bridge forwards context reads and validates scoped progress inputs", async () => {
   const client = new Client({ name: "vibecrew-bridge-test", version: "1.0.0" });
   const transport = new StdioClientTransport({
     command: process.execPath,
@@ -75,7 +75,7 @@ test("stdio bridge exposes only its read-only VibeCrew tools and forwards authen
       throw new Error(`${detail || "Bridge process exited during MCP initialization"} (remote requests observed: ${observedAuthorization.length})`, { cause: error });
     }
     const { tools } = await client.listTools();
-    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["get_my_tasks", "get_project_context"]);
+    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["get_my_tasks", "get_project_context", "update_my_task"]);
 
     const taskResult = await client.callTool({ name: "get_my_tasks", arguments: {} });
     assert.deepEqual(JSON.parse(taskResult.content[0].text), [{ task_key: "VBC-001", title: "Test bridge" }]);
@@ -84,6 +84,9 @@ test("stdio bridge exposes only its read-only VibeCrew tools and forwards authen
     assert.deepEqual(JSON.parse(contextResult.content[0].text), { projectId, source: "test" });
     assert.ok(observedAuthorization.length >= 3);
     assert.ok(observedAuthorization.every((header) => header === `Bearer ${expectedToken}`));
+
+    const forbiddenCompletion = await client.callTool({name:"update_my_task", arguments:{taskKey:"VBC-001",expectedVersion:1,status:"DONE"}});
+    assert.equal(forbiddenCompletion.isError, true);
 
     const invalid = await client.callTool({ name: "get_project_context", arguments: { projectId: "not-a-uuid" } });
     assert.equal(invalid.isError, true);
