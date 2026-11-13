@@ -29,6 +29,10 @@ test('owner can compose project context and members receive a read-only view',as
   await expect(page.getByText('No documents published yet.',{exact:false})).toBeVisible();
   await page.getByLabel('Title',{exact:true}).fill('Team plan');
   await page.getByLabel('Markdown content',{exact:true}).fill('Build a usable shared context flow.');
+  for (const width of [390,820,1440]) {
+    await page.setViewportSize({width,height:900});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+  }
   await page.getByRole('button',{name:'Publish shared context',exact:true}).click();
   await expect(page.locator('.context-library [role="status"]')).toHaveText('Published. Members and IDEs can fetch the new revision.');
   await page.evaluate(()=>window.dispatchEvent(new CustomEvent('vibecrew:context',{detail:{projectId:'synthetic-test',canPublish:false,documents:[{kind:'plan',title:'Team plan',body:'Published plan',version:1}]}})));
