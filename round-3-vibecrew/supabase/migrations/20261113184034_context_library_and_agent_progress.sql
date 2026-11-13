@@ -78,4 +78,3 @@ begin
   return jsonb_build_object('workspace_id', v_workspace_id, 'project_id', v_project_id);
 end;
 $$;
-
